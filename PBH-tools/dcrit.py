@@ -9,18 +9,20 @@ def TransferFunction(k, t):
     arg = k*t*sq
     return 3 * (np.sin(arg) - arg*np.cos(arg) ) / arg**3
 
-def GaussianPowerSpectrum(k, P0=1,kstar=1, sigma=1):
+def GaussianPowerSpectrum(k, P0=1,kstar=1, sigma=0.5):
 
     return P0 * np.exp( -(k -kstar)**2/(2*sigma**2))
 
 
-def LogNormalPowerSpectrum(k, P0=1, kstar=1, sigma=1):
+def LogNormalPowerSpectrum(k, P0=1, kstar=1, sigma=0.5):
     return P0 * np.exp(- np.log(k/kstar) ** 2 / (2 * sigma**2))
 
 
 def PowerSpectrum(k,t):
 
-    return GaussianPowerSpectrum(k) * TransferFunction(k,t)
+    out = GaussianPowerSpectrum(k) * TransferFunction(k,t)
+    # out = LogNormalPowerSpectrum(k) * TransferFunction(k, t)
+    return out
 
 def ShapeRHS(t, rm=1, print_errors=False):
 
@@ -64,8 +66,6 @@ def get_rm(t, guess=1, method='root'):
 
 
 
-
-
 def ShapeValue(t, rm=1, guess=0.1, method='root'):
 
     def func(a):
@@ -79,6 +79,13 @@ def ShapeValue(t, rm=1, guess=0.1, method='root'):
         if success:
             return float(root)
         else:
+            print("  guess used = ", guess)
+
+            xvals = 10**np.linspace(-20, 1, 1000)
+            plt.plot(xvals, func(xvals))
+            plt.xscale('log')
+            plt.show()
+
             raise Exception("failed to converge in ShapeValue iteration")
 
     if method=='newton':

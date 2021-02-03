@@ -9,8 +9,10 @@
 #include "NanCheck.hpp"
 #include "PositiveChiAndAlpha.hpp"
 #include "TraceARemoval.hpp"
+#include "AMRReductions.hpp"
 
 // For RHS update
+
 #include "MatterCCZ4.hpp"
 
 // For constraints calculation
@@ -20,7 +22,7 @@
 
 // Problem specific includes
 #include "ChiRelaxation.hpp"   // $GRCHOMBO/Source/Matter/
-#include "ChiExtractionTaggingCriterion.hpp"
+#include "KTaggingCriterion.hpp"
 #include "ComputePack.hpp"
 #include "SetValue.hpp"
 #include "PerfectFluid.hpp"     // $GRCHOMBO/Source/Matter/
@@ -116,6 +118,13 @@ void PerfectFluidLevel::specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
             make_compute_pack(TraceARemoval(), PositiveChiAndAlpha()), a_soln,
             a_soln, INCLUDE_GHOST_CELLS);
 
+
+        // AMRReductions<VariableType::diagnostic> amr_reductions(m_gr_amr);
+        AMRReductions<VariableType::evolution> amr_reductions(m_gr_amr);
+        double K_mean = amr_reductions.norm(c_K, 2, true);
+
+
+
         // Calculate MatterCCZ4 right hand side with matter_t = PerfectFluid
         // We don't want undefined values floating around in the constraints so
         // zero these
@@ -123,7 +132,7 @@ void PerfectFluidLevel::specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
         PerfectFluidWithEOS perfect_fluid(eos);
         MatterCCZ4<PerfectFluidWithEOS> my_ccz4_matter(
             perfect_fluid, m_p.ccz4_params, m_dx, m_p.sigma, m_p.formulation,
-            m_p.G_Newton);
+            m_p.G_Newton, K_mean);
         //SetValue set_constraints_zero(0.0, Interval(c_Ham, c_Mom3));
         // auto compute_pack2 =
         //     make_compute_pack(my_ccz4_matter, set_constraints_zero);
@@ -171,6 +180,6 @@ void PerfectFluidLevel::computeTaggingCriterion(FArrayBox &tagging_criterion,
                                                const FArrayBox &current_state)
 {
     BoxLoops::loop(
-        ChiExtractionTaggingCriterion(m_dx, m_level, m_p.extraction_params),
+        KTaggingCriterion(m_dx, m_p.regrid_threshold_K),
         current_state, tagging_criterion);
 }
