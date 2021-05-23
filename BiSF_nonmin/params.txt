@@ -1,0 +1,125 @@
+#Params for runtime inputs
+
+verbosity = 0
+chk_prefix = h5/run0_
+plot_prefix = h5/run0p_
+
+restart_file = h5/test.hdf5
+#restart_file = h5/run0_000100.3d.hdf5
+
+# 'N' is the number of subdivisions in each direction of a cubic box
+# 'L' is the length of the longest side of the box, dx_coarsest = L/N
+# NB - If you use reflective BC and want to specify the subdivisions and side
+# of the box were there are no symmetries, specify 'N_full' and 'L_full' instead
+# NB - if you have a non-cubic grid, you can specify 'N1' or 'N1_full',
+# 'N2' or 'N2_full' and 'N3' or 'N3_full' ( then dx_coarsest = L/N(max) )
+# NB - the N values need to be multiples of the block_factor
+N_full = 64
+L_full = 1e5
+
+# Regridding
+# Thresholds on the change across a cell which prompts regrid
+regrid_threshold_chi = 0.1
+regrid_threshold_phi = 0.01
+
+#Min chi and lapse
+min_chi = 1e-12
+min_lapse = 1e-12
+
+# Level data
+# Maximum number of times you can regrid above coarsest level
+max_level = 1 # There are (max_level+1) grids, so min is zero
+# Frequency of regridding at each level
+# Need one for each level, ie max_level+1 items
+# Generally you do not need to regrid frequently on every level
+regrid_interval = 32 16 8 4
+# Max and min box size - for load balancing
+max_box_size = 32
+min_box_size = 8
+
+#boundaries and periodicity of grid
+#Periodic directions - 0 = false, 1 = true
+isPeriodic = 1 1 1
+# if not periodic, then specify the boundary type
+# 0 = static, 1 = sommerfeld, 2 = reflective
+# (see BoundaryConditions.hpp for details)
+#hi_boundary = 1 1 1
+#lo_boundary = 2 2 2
+#center = 0.0 0.0 0.0
+
+# if reflective boundaries selected, must set
+# parity of all vars (in order given by UserVariables.hpp)
+# 0 = even
+# 1,2,3 = odd x, y, z
+# 4,5,6 = odd xy, yz, xz
+# 7     = odd xyz
+#vars_parity            = 0 0 4 6 0 5 0    #chi and hij
+#                         0 0 4 6 0 5 0    #K and Aij
+#                         0 1 2 3          #Theta and Gamma
+#                         0 1 2 3 1 2 3    #lapse shift and B
+#                         0 0              #phi and Pi
+#vars_parity_diagnostic = 0 1 2 3          #Ham and Mom
+
+# if sommerfeld boundaries selected, must select
+# asymptotic values (in order given by UserVariables.hpp)
+#vars_asymptotic_values = 1.0 1.0 0.0 0.0 1.0 0.0 1.0 #chi and hij
+#                         0.0 0.0 0.0 0.0 0.0 0.0 0.0 #K and Aij
+#                         0.0 0.0 0.0 0.0             #Theta and Gamma
+#                         1.0 0.0 0.0 0.0 0.0 0.0 0.0 #lapse shift and B
+#                         0.0 0.0                     #phi and Pi
+#                         #0.0 0.0 0.0 0.0             #Ham and Mom
+
+# Set up time steps
+# dt will be dx*dt_multiplier on each grid level
+# HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
+checkpoint_interval = 100
+plot_interval = 10
+num_plot_vars = 15
+plot_vars = K phi phi2 Pi Pi2 Ham_abs_terms Mom Mom_abs_terms trA2 ricci_scalar rho S chi lapse ricci_scalar
+dt_multiplier = 0.05
+stop_time = 1e20
+
+#Lapse evolution
+lapse_power = 1.0
+lapse_coeff = 2.0
+lapse_advec_coeff = 1 # 1 makes the lapse gauge 1+log slicing
+
+# Shift evolution coefficients
+shift_advec_coeff = 0 # Usually no advection for beta
+shift_Gamma_coeff = 0.75 #
+eta = 0.01 # This is gamma driver, usually of order 1/M_ADM of spacetime
+
+# CCZ4 parameters
+# if using BSSN the kappa values should be zero
+formulation = 1  # 1 for BSSN, 0 for CCZ4
+kappa1 = 0
+kappa2 = 0
+kappa3 = 0
+covariantZ4 = 0 # 0: default. 1: dampk1 -> dampk1/lapse
+
+# coefficient for KO numerical dissipation
+# NB must be less than 0.5 for stability
+sigma = 10
+
+# Change the gravitational constant of the Universe!
+# Default is 1.0, for standard geometric units
+# G_Newton = 1.0
+
+# SF Initial data
+amplitudeSF = 2.5
+widthSF = 5e8
+r_zero = 0.0
+scalar_mass = 9.6e-11
+g_coupling = 0.01
+sf1_a_coupling = 43129.0974589
+sf1_b_coupling = 0.7142857
+sf2_a_coupling = 0.0
+sf2_b_coupling = 0.0
+
+
+# Relaxation paramters
+# how long and how fast to relax
+# (should be non zero if starting from phi data
+# for which constraints not solved)
+relaxtime = 0
+relaxspeed = 0.5
