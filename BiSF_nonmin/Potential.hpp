@@ -55,7 +55,7 @@ class Potential
         G_UU[0][0] = Ginv_coeff *(2*f_coeff
                                 + 6* cp_phi2*cp_phi2*vars.phi2*vars.phi2);
         G_UU[0][1] = Ginv_coeff *(-6* cp_phi*cp_phi2*vars.phi*vars.phi2);
-        G_UU[1][0] = G[0][1];
+        G_UU[1][0] = G_UU[0][1];
         G_UU[1][1] = Ginv_coeff *(2*f_coeff
                                 + 6* cp_phi*cp_phi*vars.phi*vars.phi);
 
@@ -111,6 +111,7 @@ class Potential
 
 
      // convert phi --> h (Jordan Frame)
+     /*
      int max_iter = 120;
      data_t func = 0;
      data_t d_func = 0;
@@ -127,6 +128,9 @@ class Potential
 
       // // Check convergence
       // h = (func/sf < 1e-4) ? h : sqrt(-1);
+      */
+      data_t h = vars.phi / Mp;
+
 
 
       // Calculate Higgs Potential from h
@@ -136,16 +140,17 @@ class Potential
 
 
       V_of_phi =  V_HI +
-	               g * vars.phi * vars.phi * vars.phi2*vars.phi2; // CJ
+	               g *h*h* vars.phi2*vars.phi2; // CJ
 
 
 
       dVdphi =   pow(Mp , 3) * b*h*(h*h - v*v) * (1+a*v*v) *
-                    1. /((1+a*h*h)*(1+a*h*h) * sqrt(1+a*(1+6*a)*h*h)) +
-                    2 * g * vars.phi * vars.phi2*vars.phi2; // CJ
+                    //1. /((1+a*h*h)*(1+a*h*h) * sqrt(1+a*(1+6*a)*h*h)) +
+                    1. /((1+a*h*h)*(1+a*h*h)*(1+a*h*h)) +
+                    2 * g * h * vars.phi2*vars.phi2; // CJ
 
 
-      dVdphi2 =   2 * g * vars.phi*vars.phi * vars.phi2; // CJ
+      dVdphi2 =   2 * g * h*h * vars.phi2; // CJ
 
 
      // double SI_mass = pow( 3.1e-3*Mp , 4);  // 1.462066e-13
