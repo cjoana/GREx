@@ -1,0 +1,93 @@
+# Params for variable coefficient multigrid solver, solving the eqn
+# alpha*aCoef(x)*I - beta*bCoef(x) * laplacian = rhs
+
+# The default setup allows for 2 BHs (Bowen York data) in the presence
+# of a scalar field configuration, with either periodic BCs (constant K
+# set by integrability conditions) or asymptotically flat (constant K=0,
+# dirichlet BCs should be set to dpsi=0)
+
+# spatially-varying aCoef and bCoef are set in the example itself
+# see SetLevelData.cpp, we expect alpha = 1 and beta = -1
+# (for pure laplacian, alpha = 0, beta=-1)
+alpha = 1.0
+beta  = -1.0
+
+# AMR grid params - grid length and number of cells by direction
+L = 1.0e5
+
+
+N = 64 64 64
+#N = 128 128 128    ##
+# number of AMR refinement levels is max_level + 1
+max_level    = 2  #4  ##
+# Threshold for AMR refinement, based on magnitude of rhs
+refine_threshold = 0.1
+#min box size
+block_factor = 16
+#max box size
+max_grid_size = 32
+# how aggressively to regrid
+fill_ratio   = 0.5
+buffer_size  = 3
+
+# Setup multigrid params
+numMGsmooth = 4 # number of GSRB smooths before and after MG coarsening
+#preCondSolverDepth = 1
+num_mg     = 1
+numMGIterations = 2 #this is the number of MG v-cycles in the preconditioner
+max_iterations = 100 # 100 #max number of solver iterations
+max_NL_iterations = 100 # 20 #non linear outside loop iterations   ##
+tolerance  = 1.0e-15  #solver tolerance for declaring convergence
+hang       = 1.0e-18  #solver tolerance for deciding when we're hung
+verbosity = 2 # higher number means more verbose output
+
+# how to average face-centered coefficients to coarser multigrid levels
+#coefficient_average_type = arithmetic
+coefficient_average_type = harmonic
+
+# Boundary conditions for domain-boundary faces
+# 0 for non periodic, 1 for periodic (enforces same for all)
+is_periodic = 1
+# if not periodic, then what?
+# 1 -> const Neumann (gradient), 0 -> const Dirichlet (value)
+bc_lo       = 0 0 0
+bc_hi       = 0 0 0
+# And set the constant value of these conditions
+# note bc_value probably 0 because it is applied to dpsi at boundary (not psi)
+bc_value = 0.0
+
+# Q: "Simple, change the gravitational constant of the Universe"
+G_Newton = 1.0
+
+# scalar field input params
+phi_amplitude = 1e0
+phi_wavelength = 6   # phi_wavelenght of L
+phi_background = 10.   # CJ added
+
+# kinetic scalar field input params
+pi_amplitude  = 0
+pi_wavelength = 8   # phi_wavelenght of L
+pi_background = 0  #  6.1e-13 CJ added
+
+# initial conditions for Binary BH spacetimes
+# (can be with or without periodic BCs,
+#  and in presence of scalar field)
+# if you don't want BHs just set masses to zero
+
+#BH1
+bh1_bare_mass = 0
+# spin about z axis (this is J_z)
+bh1_spin = 0.0
+# boost in y direction (this is P_y)
+bh1_momentum = 0.00
+# offset from center in x direction
+bh1_offset = 0
+
+#BH2
+bh2_bare_mass = 0
+# spin about z axis (this is J_z)
+bh2_spin = 0.0
+# boost in y direction (this is P_y)
+bh2_momentum = -0.00
+# offset from center in x direction
+bh2_offset = 0

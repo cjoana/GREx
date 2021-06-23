@@ -1,0 +1,106 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+
+c    ----------------------------------------------------------------------
+c      Compute the undivided gradient over the grid (no boundary handling).
+c      (derived from AMRTimeDependent/GodunovUtilitiesF.ChF)
+c     ----------------------------------------------------------------------
+
+      subroutine GETLAPLACIANPSIF(
+     &     CHF_FRA1[l_of_psi],
+     &     CHF_CONST_FRA1[psi],
+     &     CHF_CONST_REAL[dx],
+     &     CHF_BOX[box])
+
+      integer d0, CHF_AUTODECL[i], CHF_AUTODECL[ii]
+      real_t dpsidxdx
+
+      CHF_AUTOMULTIDO[box;i]
+
+         l_of_psi(CHF_AUTOIX[i]) = 0.0
+
+         do d0 = 0,CH_SPACEDIM-1
+           CHF_DTERM[
+             ii0 = CHF_ID(d0,0);
+             ii1 = CHF_ID(d0,1);
+             ii2 = CHF_ID(d0,2)]
+
+c       2nd order
+           dpsidxdx = 1.0/dx/dx * (
+     &     +1.0 * psi(CHF_OFFSETIX[i;  -ii]  )
+     &     -2.0 * psi(CHF_AUTOIX  [i]        )
+     &     +1.0 * psi(CHF_OFFSETIX[i;  +ii]  )
+     &     )
+
+c       6th order
+c           dpsidxdx = 1.0/180.0/dx/dx * (
+c     &     + 2    *psi(CHF_OFFSETIX[i;-3*ii]  )
+c     &     - 27   *psi(CHF_OFFSETIX[i;-2*ii]  )
+c     &     + 270  *psi(CHF_OFFSETIX[i;  -ii]  )
+c     &     - 490   *psi(CHF_AUTOIX  [i]        )
+c     &     + 270  *psi(CHF_OFFSETIX[i;  +ii]  )
+c     &     - 27   *psi(CHF_OFFSETIX[i;+2*ii]  )
+c     &     + 2    *psi(CHF_OFFSETIX[i;+3*ii]  )
+c     &     )
+
+           l_of_psi(CHF_AUTOIX[i]) = l_of_psi(CHF_AUTOIX[i]) + dpsidxdx
+         enddo
+
+      CHF_ENDDO
+
+      return
+      end
+
+c     calculate the contribution to rho from gradients of the SF phi
+c     since conformally flat metric assumed, this is = 
+c     1/2 * \delta^{ij} \partial_i \phi \partial_j \phi
+c     Note that the psi^-4 term from raising the index is dealt with elsewhere
+ 
+      subroutine GETRHOGRADPHIF(
+     &     CHF_FRA1[rho_grad_phi],
+     &     CHF_CONST_FRA1[phi],
+     &     CHF_CONST_REAL[dx],
+     &     CHF_BOX[box])
+
+      integer d0, CHF_AUTODECL[i], CHF_AUTODECL[ii]
+      real_t dphidx
+
+      CHF_AUTOMULTIDO[box;i]
+          rho_grad_phi(CHF_AUTOIX[i]) = 0.0
+          do d0 = 0,CH_SPACEDIM-1
+            CHF_DTERM[
+              ii0 = CHF_ID(d0,0);
+              ii1 = CHF_ID(d0,1);
+              ii2 = CHF_ID(d0,2)]
+
+c      2nd order
+             dphidx = 0.5/dx * (
+     &     + phi(CHF_OFFSETIX[i;  +ii])
+     &     - phi(CHF_OFFSETIX[i;  -ii])
+     &       )
+
+c      6th order
+c            dphidx = 1.0/60.0/dx * (
+c     &     - 1 *phi(CHF_OFFSETIX[i;+2*ii])
+c     &     + 9 *phi(CHF_OFFSETIX[i;+2*ii])
+c     &     - 45*phi(CHF_OFFSETIX[i;  +ii])
+c     &     + 45*phi(CHF_OFFSETIX[i;  -ii])
+c     &     - 9 *phi(CHF_OFFSETIX[i;-2*ii])
+c     &     + 1 *phi(CHF_OFFSETIX[i;+2*ii])
+c     &       )
+
+            rho_grad_phi(CHF_AUTOIX[i]) = rho_grad_phi(CHF_AUTOIX[i]) + 0.5*dphidx*dphidx
+          enddo
+      CHF_ENDDO
+
+      return
+      end
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \

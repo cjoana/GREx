@@ -1,0 +1,477 @@
+C      _______              __
+C     / ___/ /  ___  __ _  / /  ___
+C    / /__/ _ \/ _ \/  V \/ _ \/ _ \
+C    \___/_//_/\___/_/_/_/_.__/\___/
+C    Please refer to Copyright.txt, in Chombo's root directory.
+
+#include "CONSTANTS.H"
+
+C     -----------------------------------------------------------------
+C     subroutine GSRBHELMHOLTZVC{1D,2D,3D}
+C     computes alpha * aCoef(i) * I - beta * bCoef(i) * Laplacian
+C     applied to dpsi and then does GSRB relaxation
+C
+C     INPUTS/OUTPUTS:
+C     dpsi       <=> dpsi
+C     rhs        => right hand side
+C     region     => box to compute over
+C     dx         => cell spacing
+C     alpha      => contant multiplier of aCoef
+C     aCoef      => spatially varying coef of I
+C     beta       => contant multiplier of bCoef
+C     bCoef      => spatially varying coef of Laplacian
+C     lambda     => relaxation coefficient
+C     redBlack   => red or black pass
+C
+C     Warning: dpsi, lofdpsi must have the same number
+C     of components and span region.  dpsi needs one more cell on
+C     all sides
+C
+C     ------------------------------------------------------------------
+#if CH_SPACEDIM == 1
+      subroutine GSRBHELMHOLTZVC1D(
+     &     CHF_FRA[dpsi],
+     &     CHF_CONST_FRA[rhs],
+     &     CHF_BOX[region],
+     &     CHF_CONST_REAL[dx],
+     &     CHF_CONST_REAL[alpha],
+     &     CHF_CONST_FRA[aCoef],
+     &     CHF_CONST_REAL[beta],
+     &     CHF_CONST_FRA[bCoef],
+     &     CHF_CONST_FRA[lambda],
+     &     CHF_CONST_INT[redBlack])
+#elif CH_SPACEDIM == 2
+      subroutine GSRBHELMHOLTZVC2D(
+     &     CHF_FRA[dpsi],
+     &     CHF_CONST_FRA[rhs],
+     &     CHF_BOX[region],
+     &     CHF_CONST_REAL[dx],
+     &     CHF_CONST_REAL[alpha],
+     &     CHF_CONST_FRA[aCoef],
+     &     CHF_CONST_REAL[beta],
+     &     CHF_CONST_FRA[bCoef],
+     &     CHF_CONST_FRA[lambda],
+     &     CHF_CONST_INT[redBlack])
+#elif CH_SPACEDIM == 3
+      subroutine GSRBHELMHOLTZVC3D(
+     &     CHF_FRA[dpsi],
+     &     CHF_CONST_FRA[rhs],
+     &     CHF_BOX[region],
+     &     CHF_CONST_REAL[dx],
+     &     CHF_CONST_REAL[alpha],
+     &     CHF_CONST_FRA[aCoef],
+     &     CHF_CONST_REAL[beta],
+     &     CHF_CONST_FRA[bCoef],
+     &     CHF_CONST_FRA[lambda],
+     &     CHF_CONST_INT[redBlack])
+#else
+      Somthing_that_will_not_compile
+#endif
+
+      REAL_T dxinv, lofdpsi, ldpsi
+      integer n,ncomp,indtot,imin,imax
+      integer CHF_DDECL[i;j;k]
+
+      ncomp = CHF_NCOMP[dpsi]
+
+      if (ncomp .ne. CHF_NCOMP[dpsi]) then
+         call MAYDAYERROR()
+      endif
+
+      if (ncomp .ne. CHF_NCOMP[rhs]) then
+         call MAYDAYERROR()
+      endif
+
+      if (ncomp .ne. CHF_NCOMP[bCoef]) then
+         call MAYDAYERROR()
+      endif
+
+      dxinv = one/(dx*dx)
+
+      do n = 0, ncomp - 1
+#if CH_SPACEDIM==3
+        do k=CHF_LBOUND[region; 2], CHF_UBOUND[region; 2]
+#endif
+#if CH_SPACEDIM > 1
+          do j=CHF_LBOUND[region; 1], CHF_UBOUND[region; 1]
+#endif
+            imin = CHF_LBOUND[region; 0]
+            indtot = CHF_DTERM[imin; + j ; + k]
+
+C     add 0 or 1 to imin, so that imin+j+k has same parity as redBlack
+C     petermc, 26 april 2001
+
+            imin = imin + abs(mod(indtot + redBlack, 2))
+            imax = CHF_UBOUND[region; 0]
+            do i = imin, imax, 2
+              lofdpsi =
+     &            alpha * aCoef(CHF_IX[i;j;k],n) * dpsi(CHF_IX[i;j;k],n)
+
+C laplacian term
+        ldpsi = CHF_DTERM[
+     &     (    dpsi(CHF_IX[i+1;j  ;k  ],n)
+     &     +    dpsi(CHF_IX[i-1;j  ;k  ],n)
+     $     -two*dpsi(CHF_IX[i  ;j  ;k  ],n)) ;
+     $     +(   dpsi(CHF_IX[i  ;j+1;k  ],n)
+     &     +    dpsi(CHF_IX[i  ;j-1;k  ],n)
+     $     -two*dpsi(CHF_IX[i  ;j  ;k  ],n)) ;
+     $     +(   dpsi(CHF_IX[i  ;j  ;k+1],n)
+     &     +    dpsi(CHF_IX[i  ;j  ;k-1],n)
+     $     -two*dpsi(CHF_IX[i  ;j  ;k  ],n)) ]
+
+        ldpsi = ldpsi * dxinv * bCoef(CHF_IX[i;j;k],n)
+
+        lofdpsi = lofdpsi - beta*ldpsi
+C end laplacian term
+
+              dpsi(CHF_IX[i;j;k],n) = dpsi(CHF_IX[i;j;k],n)
+     &          - lambda(CHF_IX[i;j;k],n) * (lofdpsi - rhs(CHF_IX[i;j;k],n))
+            enddo
+#if CH_SPACEDIM > 1
+          enddo
+#endif
+#if CH_SPACEDIM==3
+        enddo
+#endif
+      enddo
+
+      return
+      end
+
+C     -----------------------------------------------------------------
+C     subroutine VCCOMPUTEOP{1D,2D,3D}
+C     computes (alpha * aCoef(i) * I - beta * bCoef(i) * Laplacian)(dpsi)
+C
+C     INPUTS/OUTPUTS:
+C     lofdpsi    <=  operator applied to dpsi
+C     dpsi        => dpsi
+C     alpha      => contant multiplier of aCoef
+C     aCoef      => spatially varying coef of I
+C     beta       => contant multiplier of bCoef
+C     bCoef      => spatially varying coef of Laplacian
+C     region     => box to compute over
+C     dx         => cell spacing
+C
+C     Warning: dpsi, lofdpsi must have the same number
+C     of components and span region.  dpsi needs one more cell on
+C     all sides
+C
+C     ------------------------------------------------------------------
+#if CH_SPACEDIM == 1
+      subroutine VCCOMPUTEOP1D(
+     &     CHF_FRA[lofdpsi],
+     &     CHF_CONST_FRA[dpsi],
+     &     CHF_CONST_REAL[alpha],
+     &     CHF_CONST_FRA[aCoef],
+     &     CHF_CONST_REAL[beta],
+     &     CHF_CONST_FRA[bCoef],
+     &     CHF_BOX[region],
+     &     CHF_CONST_REAL[dx])
+#elif CH_SPACEDIM == 2
+      subroutine VCCOMPUTEOP2D(
+     &     CHF_FRA[lofdpsi],
+     &     CHF_CONST_FRA[dpsi],
+     &     CHF_CONST_REAL[alpha],
+     &     CHF_CONST_FRA[aCoef],
+     &     CHF_CONST_REAL[beta],
+     &     CHF_CONST_FRA[bCoef],
+     &     CHF_BOX[region],
+     &     CHF_CONST_REAL[dx])
+#elif CH_SPACEDIM == 3
+      subroutine VCCOMPUTEOP3D(
+     &     CHF_FRA[lofdpsi],
+     &     CHF_CONST_FRA[dpsi],
+     &     CHF_CONST_REAL[alpha],
+     &     CHF_CONST_FRA[aCoef],
+     &     CHF_CONST_REAL[beta],
+     &     CHF_CONST_FRA[bCoef],
+     &     CHF_BOX[region],
+     &     CHF_CONST_REAL[dx])
+#else
+      Somthing_that_will_not_compile
+#endif
+
+      REAL_T dxinv, ldpsi
+      integer n,ncomp
+
+      integer CHF_DDECL[i;j;k]
+
+      ncomp = CHF_NCOMP[dpsi]
+      if (ncomp .ne. CHF_NCOMP[lofdpsi]) then
+         call MAYDAYERROR()
+      endif
+
+      if (ncomp .ne. CHF_NCOMP[bCoef]) then
+         call MAYDAYERROR()
+      endif
+
+      dxinv = one/(dx*dx)
+      do n = 0, ncomp-1
+        CHF_MULTIDO[region; i; j; k]
+          lofdpsi(CHF_IX[i;j;k],n) =
+     &        alpha * aCoef(CHF_IX[i;j;k],n) * dpsi(CHF_IX[i;j;k],n)
+
+C laplacian term
+
+        ldpsi = CHF_DTERM[
+     &     (    dpsi(CHF_IX[i+1;j  ;k  ],n)
+     &     +    dpsi(CHF_IX[i-1;j  ;k  ],n)
+     $     -two*dpsi(CHF_IX[i  ;j  ;k  ],n)) ;
+     $     +(   dpsi(CHF_IX[i  ;j+1;k  ],n)
+     &     +    dpsi(CHF_IX[i  ;j-1;k  ],n)
+     $     -two*dpsi(CHF_IX[i  ;j  ;k  ],n)) ;
+     $     +(   dpsi(CHF_IX[i  ;j  ;k+1],n)
+     &     +    dpsi(CHF_IX[i  ;j  ;k-1],n)
+     $     -two*dpsi(CHF_IX[i  ;j  ;k  ],n)) ]
+
+        ldpsi = ldpsi * dxinv * beta * bCoef(CHF_IX[i;j;k],n)
+
+        lofdpsi(CHF_IX[i;j;k],n) =  lofdpsi(CHF_IX[i;j;k],n) - ldpsi
+
+C end laplacian term
+
+        CHF_ENDDO
+      enddo
+
+      return
+      end
+
+C     -----------------------------------------------------------------
+C     subroutine VCCOMPUTERES{1D,2D,3D}
+C     computes:
+C         rhs - (alpha * aCoef(i) * I - beta * Laplacian)(dpsi)
+C
+C     INPUTS/OUTPUTS:
+C     res       <=  residual
+C     dpsi        => dpsi
+C     rhs        => rhs
+C     alpha      => constant multiplier of aCoef
+C     aCoef      => spatially varying coef of I
+C     beta       => constant multiplier of bCoef
+C     bCoef      => spatially varying coef of Laplacian
+C     region     => box to compute over
+C     dx         => cell spacing
+C
+C     Warning: dpsi, rhs, res must have the same number
+C     of components and span region.  dpsi needs one more cell on
+C     all sides
+C
+C     ------------------------------------------------------------------
+#if CH_SPACEDIM == 1
+      subroutine VCCOMPUTERES1D(
+     &     CHF_FRA[res],
+     &     CHF_CONST_FRA[dpsi],
+     &     CHF_CONST_FRA[rhs],
+     &     CHF_CONST_REAL[alpha],
+     &     CHF_CONST_FRA[aCoef],
+     &     CHF_CONST_REAL[beta],
+     &     CHF_CONST_FRA[bCoef],
+     &     CHF_BOX[region],
+     &     CHF_CONST_REAL[dx])
+#elif CH_SPACEDIM == 2
+      subroutine VCCOMPUTERES2D(
+     &     CHF_FRA[res],
+     &     CHF_CONST_FRA[dpsi],
+     &     CHF_CONST_FRA[rhs],
+     &     CHF_CONST_REAL[alpha],
+     &     CHF_CONST_FRA[aCoef],
+     &     CHF_CONST_REAL[beta],
+     &     CHF_CONST_FRA[bCoef],
+     &     CHF_BOX[region],
+     &     CHF_CONST_REAL[dx])
+#elif CH_SPACEDIM == 3
+      subroutine VCCOMPUTERES3D(
+     &     CHF_FRA[res],
+     &     CHF_CONST_FRA[dpsi],
+     &     CHF_CONST_FRA[rhs],
+     &     CHF_CONST_REAL[alpha],
+     &     CHF_CONST_FRA[aCoef],
+     &     CHF_CONST_REAL[beta],
+     &     CHF_CONST_FRA[bCoef],
+     &     CHF_BOX[region],
+     &     CHF_CONST_REAL[dx])
+#else
+      Somthing_that_will_not_compile
+#endif
+
+      REAL_T dxinv, ldpsi
+      integer n,ncomp
+
+      integer CHF_DDECL[i;j;k]
+
+      ncomp = CHF_NCOMP[dpsi]
+      if (ncomp .ne. CHF_NCOMP[res]) then
+         call MAYDAYERROR()
+      endif
+
+      if (ncomp .ne. CHF_NCOMP[bCoef]) then
+         call MAYDAYERROR()
+      endif 
+
+      dxinv = one/(dx*dx)
+      do n = 0, ncomp-1
+        CHF_MULTIDO[region; i; j; k]
+          res(CHF_IX[i;j;k],n) =
+     &        rhs(CHF_IX[i;j;k],n)
+     &      - alpha * aCoef(CHF_IX[i;j;k],n) * dpsi(CHF_IX[i;j;k],n)
+
+C add laplacian term (note sign minus -ldpsi -> +ldpsi)
+
+        ldpsi = CHF_DTERM[
+     &     (    dpsi(CHF_IX[i+1;j  ;k  ],n)
+     &     +    dpsi(CHF_IX[i-1;j  ;k  ],n)
+     $     -two*dpsi(CHF_IX[i  ;j  ;k  ],n)) ;
+     $     +(   dpsi(CHF_IX[i  ;j+1;k  ],n)
+     &     +    dpsi(CHF_IX[i  ;j-1;k  ],n)
+     $     -two*dpsi(CHF_IX[i  ;j  ;k  ],n)) ;
+     $     +(   dpsi(CHF_IX[i  ;j  ;k+1],n)
+     &     +    dpsi(CHF_IX[i  ;j  ;k-1],n)
+     $     -two*dpsi(CHF_IX[i  ;j  ;k  ],n)) ]
+ 
+        ldpsi = ldpsi * dxinv * beta * bCoef(CHF_IX[i;j;k],n)
+
+        res(CHF_IX[i;j;k],n) = res(CHF_IX[i;j;k],n) + ldpsi
+
+        CHF_ENDDO
+      enddo
+
+      return
+      end
+
+C     -----------------------------------------------------------------
+C     subroutine RESTRICTRESVC{1D,2D,3D}
+C     computes restriction of residual to a coarser multgrid level
+C        res[2h] = I[h->2h] (rhs[h] - L(dpsi[h]))
+C     INPUTS/OUTPUTS:
+C     res       <=  res[2h]
+C     rhs       =>  rhs[h]
+C     dpsi       =>  dpsi[h]
+C     alpha      => contant multiplier of aCoef
+C     aCoef      => spatially varying coef of I
+C     beta       => contant multiplier of bCoef
+C     bCoef      => spatially varying coef of Laplacian
+C     region    =>  Box over which rhs is defined (in h index space)
+C     dx        =>  grid spacing in h
+C     ------------------------------------------------------------------
+#if CH_SPACEDIM == 1
+      subroutine RESTRICTRESVC1D(
+     &     CHF_FRA[res],
+     &     CHF_CONST_FRA[dpsi],
+     &     CHF_CONST_FRA[rhs],
+     &     CHF_CONST_REAL[alpha],
+     &     CHF_CONST_FRA[aCoef],
+     &     CHF_CONST_REAL[beta],
+     &     CHF_CONST_FRA[bCoef],
+     &     CHF_BOX[region],
+     &     CHF_CONST_REAL[dx])
+#elif CH_SPACEDIM == 2
+      subroutine RESTRICTRESVC2D(
+     &     CHF_FRA[res],
+     &     CHF_CONST_FRA[dpsi],
+     &     CHF_CONST_FRA[rhs],
+     &     CHF_CONST_REAL[alpha],
+     &     CHF_CONST_FRA[aCoef],
+     &     CHF_CONST_REAL[beta],
+     &     CHF_CONST_FRA[bCoef],
+     &     CHF_BOX[region],
+     &     CHF_CONST_REAL[dx])
+#elif CH_SPACEDIM == 3
+      subroutine RESTRICTRESVC3D(
+     &     CHF_FRA[res],
+     &     CHF_CONST_FRA[dpsi],
+     &     CHF_CONST_FRA[rhs],
+     &     CHF_CONST_REAL[alpha],
+     &     CHF_CONST_FRA[aCoef],
+     &     CHF_CONST_REAL[beta],
+     &     CHF_CONST_FRA[bCoef],
+     &     CHF_BOX[region],
+     &     CHF_CONST_REAL[dx])
+#else
+      Somthing_that_will_not_compile
+#endif
+
+      REAL_T denom, dxinv, lofdpsi, ldpsi
+      integer n, ncomp
+
+      integer CHF_DDECL[i;j;k]
+      integer CHF_DDECL[ii;jj;kk]
+
+      ncomp = CHF_NCOMP[dpsi]
+
+      dxinv = one / (dx*dx)
+      denom = D_TERM(2, *2, *2)
+
+      do n = 0, ncomp-1
+        CHF_MULTIDO[region; i; j; k]
+          CHF_DTERM[
+          ii = i/2 ;
+          jj = j/2 ;
+          kk = k/2 ]
+
+          lofdpsi =
+     &        alpha * aCoef(CHF_IX[i;j;k],n) * dpsi(CHF_IX[i;j;k],n)
+
+C laplacian term
+
+        ldpsi = CHF_DTERM[
+     &     (    dpsi(CHF_IX[i+1;j  ;k  ],n)
+     &     +    dpsi(CHF_IX[i-1;j  ;k  ],n)
+     $     -two*dpsi(CHF_IX[i  ;j  ;k  ],n)) ;
+     $     +(   dpsi(CHF_IX[i  ;j+1;k  ],n)
+     &     +    dpsi(CHF_IX[i  ;j-1;k  ],n)
+     $     -two*dpsi(CHF_IX[i  ;j  ;k  ],n)) ;
+     $     +(   dpsi(CHF_IX[i  ;j  ;k+1],n)
+     &     +    dpsi(CHF_IX[i  ;j  ;k-1],n)
+     $     -two*dpsi(CHF_IX[i  ;j  ;k  ],n)) ]
+
+          ldpsi = ldpsi * dxinv * beta * bCoef(CHF_IX[i;j;k],n)
+
+          lofdpsi = lofdpsi - ldpsi
+
+          res(CHF_IX[ii;jj;kk],n) = res(CHF_IX[ii;jj;kk],n)
+     &                            + (rhs(CHF_IX[i;j;k],n) - lofdpsi) / denom
+        CHF_ENDDO
+      enddo
+
+      return
+      end
+
+C -------------------------------------------------------------
+C  utility function -- increments lhs with average from  faces
+C  to cell-centers of bCoefs in dir direction
+C
+C  lhs   <=> cell-centered data to be incremented
+C  beta   => multiplier of rhs
+C  bCoefs => face-centered data to be averaged to cell-centers
+C  box    => cell-centered box over which to operate
+C  dir    => direction to do averaging
+C  scale  => scaling factor
+C --------------------------------------------------------------
+      subroutine SUMFACES(CHF_FRA[lhs],
+     &                    CHF_CONST_REAL[beta],
+     &                    CHF_CONST_FRA[bCoefs],
+     &                    CHF_BOX[box],
+     &                    CHF_CONST_INT[dir],
+     &                    CHF_CONST_REAL[scale])
+
+      REAL_T sumVal
+      integer CHF_DDECL[i;j;k]
+      integer CHF_DDECL[ii;jj;kk]
+      integer n
+
+      CHF_DTERM[
+      ii = CHF_ID(0,dir);
+      jj = CHF_ID(1,dir);
+      kk = CHF_ID(2,dir)]
+
+      do n = 0, CHF_NCOMP[lhs]-1
+        CHF_MULTIDO[box;i;j;k]
+          sumVal = bCoefs(CHF_IX[i+ii;j+jj;k+kk],n)
+     &           + bCoefs(CHF_IX[i   ;j   ;k   ],n)
+
+          lhs(CHF_IX[i;j;k],n) = lhs(CHF_IX[i;j;k],n) + scale * beta * sumVal
+        CHF_ENDDO
+      enddo
+
+      return
+      end
