@@ -22,7 +22,9 @@
 
 // Problem specific includes
 // #include "ChiRelaxation.hpp"   // $GRCHOMBO/Source/Matter/
-#include "KTaggingCriterion.hpp"
+#include "FluidInitData.hpp"
+//#include "KTaggingCriterion.hpp"
+#include "KandWTaggingCriterion.hpp"
 #include "ComputePack.hpp"
 #include "SetValue.hpp"
 #include "PerfectFluid.hpp"     // $GRCHOMBO/Source/Matter/
@@ -69,6 +71,14 @@ void PerfectFluidLevel::prePlotLevel()
               c_ricci_scalar, c_trA2,
               c_rho, c_S, c_ricci_scalar_tilde),
           m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
+
+
+    AMRReductions<VariableType::diagnostic> amr_reductions(m_gr_amr);
+    // AMRReductions<VariableType::diagnostic> camr_reductions(m_gr_amr);
+    double Ham = amr_reductions.norm(c_Ham_abs_terms, 2, true);
+    double rho = amr_reductions.norm(c_rho, 2, true);
+
+    pout() << "Ham_Abs_tems " << Ham <<  "  rho  " <<   rho   << endl;
 }
 
 
@@ -80,22 +90,26 @@ void PerfectFluidLevel::specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
 {
     // Relaxation function for chi - this will eventually be done separately
     // with hdf5 as input
-    if (m_time < m_p.relaxtime)
+    if (m_time <= m_p.relaxtime)
     {
 
-                                                                                    // TODO:
+// TODO:
         // Calculate chi relaxation right hand side
         // Note this assumes conformal chi and Mom constraint trivially
         // satisfied  No evolution in other variables, which are assumed to
         // satisfy constraints per initial conditions
-//        EquationOfState eos(m_p.eos_params);
-//        PerfectFluidWithEOS perfect_fluid(eos);
-//        ChiRelaxation<PerfectFluidWithEOS> relaxation(
-//            perfect_fluid, m_dx, m_p.relaxspeed, m_p.G_Newton);
-//        SetValue set_other_values_zero(0.0, Interval(c_h11, NUM_VARS - 1));
+       // EquationOfState eos(m_p.eos_params);
+       // PerfectFluidWithEOS perfect_fluid(eos);
+       // FluidInitData<PerfectFluidWithEOS> initialisation(
+       //     perfect_fluid, m_dx, m_p.relaxspeed, m_p.G_Newton);
+
+       // SetValue set_other_values_zero(0.0, Interval(c_h11, NUM_VARS - 1));
 //        auto compute_pack1 =
-//            make_compute_pack(relaxation, set_other_values_zero);
-//        BoxLoops::loop(compute_pack1, a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
+//            make_compute_pack(initialisation, set_other_values_zero);
+
+       // BoxLoops::loop(initialisation, a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
+
+
     }
     else
     {
@@ -121,10 +135,6 @@ void PerfectFluidLevel::specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
             perfect_fluid, m_p.ccz4_params, m_dx, m_p.sigma, m_p.formulation,
             m_p.G_Newton);
 
-//	MatterCCZ4RHS<PerfectFluidWithEOS> my_ccz4_matter(
-//            perfect_fluid, m_p.ccz4_params, m_dx, m_p.sigma, m_p.formulation,
-//            m_p.G_Newton, K_mean);
-
 
         BoxLoops::loop(my_ccz4_matter, a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
 
@@ -139,7 +149,18 @@ void PerfectFluidLevel::specificUpdateODE(GRLevelData &a_soln,
     // Enforce trace free A_ij
     BoxLoops::loop(TraceARemoval(), a_soln, a_soln, INCLUDE_GHOST_CELLS);
 
-    fillAllGhosts();
+
+    if (m_time <= m_p.relaxtime)
+    {
+
+      EquationOfState eos(m_p.eos_params);
+      PerfectFluidWithEOS perfect_fluid(eos);
+      FluidInitData<PerfectFluidWithEOS> initialisation(
+          perfect_fluid, m_dx, m_p.relaxspeed, m_p.G_Newton);
+
+      BoxLoops::loop(initialisation, a_soln, a_soln, EXCLUDE_GHOST_CELLS);
+    }
+
     // Update constraints also for plotfile
     EquationOfState eos(m_p.eos_params);
     PerfectFluidWithEOS perfect_fluid(eos);
@@ -147,13 +168,17 @@ void PerfectFluidLevel::specificUpdateODE(GRLevelData &a_soln,
     // Evaluate fluid vars (density, energy, etc)  CJ !!!
     BoxLoops::loop(perfect_fluid, a_soln, a_soln,
                      EXCLUDE_GHOST_CELLS, disable_simd());
+
+
+    fillAllGhosts();
+
 }
 
 void PerfectFluidLevel::computeTaggingCriterion(FArrayBox &tagging_criterion,
                                                const FArrayBox &current_state)
 {
     BoxLoops::loop(
-        KTaggingCriterion(m_dx, m_p.regrid_threshold_K),
+        KandWTaggingCriterion(m_dx, m_p.regrid_threshold_K, m_p.regrid_threshold_W),
         current_state, tagging_criterion);
 }
 

@@ -1,0 +1,56 @@
+Welcome to the SPriBHoS (Spectral Primordial Black Hole Simulator) code. The code is made by Albert Escrivà, https://sites.google.com/fqa.ub.edu/albertescriva/home.
+The details of the method can be found in the paper https://arxiv.org/abs/1907.13065 (accepted for publication in the "Physics of the Dark Universe" journal). Plase, if you use the code cite the paper and the webpage.
+
+The code uses Pseudospectral collocation method to solve the spatial derivatives and the RK4 method to integrate in time.
+The code is written in python. The code has been built to avoid any complexities and has been written in the most simply way,
+in order that even a beginner in python is able to use and modify the code.
+
+The code will be updated with future improvements.
+
+If you have some questions, you want to make some suggestion, or you want to report bugs. Please send an email to:
+
+albert.escriva@fqa.ub.edu
+
+----Versions-----
+
+--Version--2.0
+
+The version incorporates the basic items to get the threshold from a given curvature perturbation K(r) and the computation of the PBH mass.
+The code is based in 5 files:
+
+File--"SPriBHoS.py"
+This is the main code. The code is commented step-by step inside. The main code uses three other python files. The code returns the value of the threshold for a given curvature profile and resolution.
+
+File--"SPriBHoS_excision.py":
+This file is similar to the one of "SPriBHoS.py", but incorporates the method of excision to compute the PBH mass. The example to compute the largest allowed PBH mass for a gaussian profile in radiation fluid is given.
+
+File-- "Dmatrix.py":
+The file computes the Chebyshev grid and differentiation matrix for a given number of Chebyshev points and domain (a,b).
+
+File-- "curvature_profiles.py":
+This part of the code computes the curvature profile and its derivative, needed to set up the initial conditions.
+
+File--"threshold.py":
+This part of the code relates the value of the amplitude of the perturbation with the specific value of delta with the relation deltam=f(w)*K(rm)*rm**2
+
+
+
+Important:
+
+- The long wavelength approximation always has to be fulfilled.
+- In terms of stability , the number of Ncheb and dt0 is related. Increase Ncheb needs to reduce dt0 appropriately.
+For a given Ncheb and chosen dt0, if the stability is satisfied at early times, in general will be fulfilled during all the evolution.
+- The curvature profiles must be chosen correctly. If the profile is too sharp, the code can have problems to get the threshold, increasing Ncheb and reducing dt0 could solve the problem.
+- If the profile has some "oscillations" at the last points of the grid, Nh must be increased (as well as increase Ncheb to preserve the density of Chebyshev points) to fulfill the Neumann boundary condition at the final point of the grid.
+- In general , set an error of the bisection with error = 10**(-3) is enough to compute the threshold within a deviation of much less than (1%).
+- The values of deltamax and deltamin can be modified to reduce the computational time of the bisection procedure.
+- The excision method takes time, around 30 minutes for the largest PBH mass.
+
+Requirements: You need Python and the libraries sympy, numpy and scipy to run the code. For installation check https://www.python.org/
+The code has been run on a Xubuntu OS system (Linux)
+
+How execute:
+
+1- Open a terminal in the same directoy of the files
+2- writte "python SPriBHoS.py" (for the computation of the threshold) or "SPriBHoS_excision.py" (for the computation of the PBH mass)
+
