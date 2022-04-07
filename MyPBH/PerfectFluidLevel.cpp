@@ -174,7 +174,7 @@ void PerfectFluidLevel::specificUpdateODE(GRLevelData &a_soln,
 
     // Evaluate fluid vars (density, energy, etc)  CJ !!!
     BoxLoops::loop(perfect_fluid, a_soln, a_soln,
-                     EXCLUDE_GHOST_CELLS, disable_simd());
+                     EXCLUDE_GHOST_CELLS); // , disable_simd());
 
 
 
