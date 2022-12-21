@@ -134,10 +134,14 @@ void PerfectFluidLevel::specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
         // Calculate MatterCCZ4 right hand side with matter_t = PerfectFluid
         // We don't want undefined values floating around in the constraints so
         // zero these
+	
+	    const int ratio = pow(2, 5 * (m_level - m_p.max_level));
+        const double sigma = m_p.sigma * double(ratio);
+	
         EquationOfState eos(m_p.eos_params);
         PerfectFluidWithEOS perfect_fluid(eos);
         MatterCCZ4RHS<PerfectFluidWithEOS> my_ccz4_matter(
-            perfect_fluid, m_p.ccz4_params, m_dx, m_p.sigma, m_p.formulation,
+            perfect_fluid, m_p.ccz4_params, m_dx, sigma, m_p.formulation,
             m_p.G_Newton);
 
 

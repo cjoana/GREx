@@ -1,0 +1,140 @@
+#Params for runtime inputs
+verbosity = 0
+chk_prefix = out/test/run0_n_
+plot_prefix = out/test/run0_np_
+
+#restart_file = out/test/run0_n_000400.3d.hdf5
+restart_file = ini/init_PBH_v6.3d.hdf5
+
+# Set up grid spacings and regrid params
+# NB - the N values need to be multiples of block_factor
+N1 = 64
+N2 = 64
+N3 = 64
+
+# Length of longest box side, dx_coarsest = L/N(max)
+# NB if non cubic, this determines dx for all sides
+L = 10
+
+# Regridding
+# Thresholds on the change across a cell which prompts regrid
+regrid_threshold_K = 0.001
+
+min_lapse = 1e-12
+min_chi = 1e-12
+
+
+# Level data
+# Maximum number of times you can regrid above coarsest level
+max_level = 2 # There are (max_level+1) grids, so min is zero
+# Frequency of regridding at each level
+# Need one for each level, ie max_level+1 items
+# Generally you do not need to regrid frequently on every level
+regrid_interval = 5 5 5 10 10 10
+
+# Max and min box size - for load balancing
+max_box_size = 64
+min_box_size = 8
+
+#Periodicity
+isPeriodic = 1 1 1
+# if not periodic, then specify the boundary type
+# 0 = static, 1 = sommerfeld, 2 = reflective
+# (see BoundaryConditions.hpp for details)
+hi_boundary = 0 0 0
+lo_boundary = 0 0 0
+
+
+# Set up time steps
+# dt will be dx*dt_multiplier on each grid level
+# HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
+checkpoint_interval = 100
+plot_interval = 10
+num_plot_vars = 16
+plot_vars = K D E Ham Ham_abs_terms Mom Mom_abs_terms trA2 ricci_scalar rho S chi W pressure Z1 lapse
+dt_multiplier = 0.01
+stop_time = 1e6
+
+#Lapse evolution
+lapse_power = 1.0
+lapse_coeff = 2.0
+lapse_advec_coeff = 1 # 1 makes the lapse gauge 1+log slicing
+
+# Shift evolution coefficients
+shift_advec_coeff = 0 # Usually no advection for beta
+shift_Gamma_coeff = 0.75 #
+eta = 0.1 # This is beta_driver, usually of order 1/M_ADM of spacetime
+
+# CCZ4 parameters
+# if using BSSN the kappa values should be zero
+formulation = 0  # 1 for BSSN, 0 for CCZ4
+kappa1 = 0.1
+kappa2 = 0
+kappa3 = 1
+covariantZ4 = 0 # 0: default. 1: dampk1 -> dampk1/lapse
+# coefficient for KO numerical dissipation
+# NB must be less than 0.5 for stability
+sigma = 10
+
+# Change the gravitational constant of the Universe!
+# Default is 1.0, for standard geometric units
+# G_Newton = 1.0
+
+# PF Initial data
+omega = 0.3333333333
+mass = 1
+
+# parameter for bubble centre - defaulted to center of grid
+# so only uncomment if you want to place it off center
+#center = 32 32 32
+
+# Relaxation paramters
+# how long and how fast to relax
+relaxtime =  0.0
+relaxspeed = 0.0
+
+
+##extraction params
+#extraction_center = 64 64 64
+##default center to grid center, uncomment to change
+#activate_extraction = 1
+#num_extraction_radii = 3
+#extraction_radii = 10. 30. 50.
+#extraction_levels = 2 1 1
+#num_points_phi = 16
+#num_points_theta = 24
+#num_modes = 3
+#modes = 2 0 # l m for spherical harmonics
+#        2 1
+#        2 2
+
+
+#Apparent Horizon finder
+AH_activate = 1
+AH_num_ranks = 64
+AH_num_points_u = 65
+AH_num_points_v = 48
+#AH_solve_interval = 1
+#AH_print_interval = 1
+#AH_track_center = true
+#AH_predict_origin = true
+#AH_level_to_run = 0
+#AH_start_time = 0.
+#AH_give_up_time = -1.
+#AH_merger_search_factor = 1.
+#AH_merger_pre_factor = 1.
+#AH_allow_re_attempt = 0
+#AH_max_fails_after_lost = -1
+#AH_verbose = 1
+#AH_print_geometry_data = 0
+#AH_re_solve_at_restart = 0
+#AH_stop_if_max_fails = 0
+#AH_expansion_radius_power = 1.
+
+#AH_1_initial_guess = 0.3
+#AH_2_initial_guess = 0.3
+
+#AH_num_extra_vars = 2
+#AH_extra_vars = chi d1_Ham d2_A11
+
+AH_set_origins_to_punctures = 1

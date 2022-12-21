@@ -1,0 +1,37 @@
+#Params for runtime inputs
+N1 = 64
+N2 = 64
+N3 = 32
+L = 512
+max_level = 4 # There are (max_level+1) grids, so min is zero
+verbosity = 0
+
+# For read in of files
+# note that this may actually be your plot_prefix if you are reprocessing plot files
+# (we want to trick Chombo into thinking these are checkpoints for restart)
+chk_prefix = BinaryBH_plt
+# ditto for the restart file - could actually be a plot file
+restart_file = BinaryBH_plt000000.3d.hdf5
+# what is the interval in the files you want to reprocess, and how many?
+checkpoint_interval = 1
+start_file = 0
+num_files = 5
+
+# For desired outputs, set plot interval to zero to turn off plot outputs
+plot_interval = 0
+plot_prefix = PlotFile
+
+# Some dummy params to keep Chombo happy
+regrid_interval = 0 0 0 0 0
+max_grid_size = 16
+block_factor = 16
+
+# Boundary conditions - need to be adjusted to reflect those of original simulation
+# but note that you may want to set extrapolating conditions (3) for directions
+# where you did not write ghosts (e.g. sommerfeld boundaries in plot files) 
+# this will ensure they are filled with sensible values and not nans
+isPeriodic = 0 0 0
+hi_boundary = 3 3 3
+lo_boundary = 3 3 2
+vars_parity = 0 0 0 0 0 0 0 0 # one for each var in the UserVariables file
+extrapolation_order = 1
