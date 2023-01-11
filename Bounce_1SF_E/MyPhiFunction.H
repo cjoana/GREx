@@ -121,7 +121,7 @@ void set_m_value(Real &m, const Real &phi_here, const Real &pi_here,
     Real V_of_phi = 0.0;
     Real Mp = 1.0/sqrt(8.0*M_PI);  // CJ
 
-    RH = 10.;
+    Real RH = 10.;
 
     V_of_phi = 3*Mp*Mp/(RH*RH);
 
