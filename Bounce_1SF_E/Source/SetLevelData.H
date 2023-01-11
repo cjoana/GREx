@@ -42,7 +42,13 @@ extern void set_regrid_condition(LevelData<FArrayBox> &a_condition,
                                  const RealVect &a_dx,
                                  const PoissonParameters &a_params);
 
+#ifdef SET_2SF
 extern void set_m_value(Real &m, const Real &phi_here, const Real &phi2_here,
+                        const PoissonParameters &a_params,
+                        const Real constant_K);
+#endif
+
+extern void set_m_value(Real &m, const Real &phi_here,
                         const PoissonParameters &a_params,
                         const Real constant_K);
 
