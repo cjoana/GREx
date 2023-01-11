@@ -46,24 +46,16 @@ enum
     c_phi, // matter field added
     c_Pi,  //(minus) conjugate momentum
 
-#ifdef SET_2SF 
-    c_phi2, // matter field added
-    c_Pi2,  //(minus) conjugate momentum
-#endif 
+    c_Ham,
 
-	// c_rho,
-	// c_S1,
-	// c_S2,
-	// c_S3,
-	// c_Ham,
-  //
-  //   c_Mom1,
-  //   c_Mom2,
-  //   c_Mom3,
+    c_ricci_scalar, c_trA2, c_S, c_rho, c_HamRel,    //Extended
+
+    c_Mom1,
+    c_Mom2,
+    c_Mom3,
 
     NUM_GRCHOMBO_VARS
 };
-
 namespace GRChomboUserVariables
 {
 static constexpr char const *variable_names[NUM_GRCHOMBO_VARS] = {
@@ -87,18 +79,13 @@ static constexpr char const *variable_names[NUM_GRCHOMBO_VARS] = {
 
     "phi",    "Pi",
 
-  #ifdef SET_2SF 
-    "phi2",    "Pi2",
-  #endif 
+    "Ham",
 
-    // "rho",
+    "ricci_scalar", "trA2", "S", "rho", "HamRel", 
 
-    // "S1", "S2", "S3",
-
-    // "Ham",    "Mom1",   "Mom2",   "Mom3"
-
-
-  };
+     "Mom1",   "Mom2",   "Mom3"
+     };
 }
+
 
 #endif /* GRCHOMBOUSERVARIABLES_HPP */

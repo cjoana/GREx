@@ -14,7 +14,6 @@
 #include "BRMeshRefine.H"
 #include "BiCGStabSolver.H"
 #include "BoxIterator.H"
-#include "CH_HDF5.H"
 #include "CONSTANTS.H"
 #include "CoarseAverage.H"
 #include "LoadBalance.H"
@@ -35,86 +34,26 @@ void getPoissonParameters(PoissonParameters &a_params)
     pout() << "alpha, beta = " << a_params.alpha << ", " << a_params.beta
            << endl;
 
-    if (pp.contains("read_from_file"))
-    {
-        pp.get("read_from_file", a_params.read_from_file);
-    }
-    else
-    {
-        a_params.read_from_file = "none";
-    }
-
-    if (pp.contains("read_from_data"))
-    {
-        pp.get("read_from_data", a_params.read_from_data);
-        // read from set of data
-        int lines;
-        pp.get("data_lines", lines);
-        pp.get("data_spacing", a_params.spacing);
-        Real inputpsi[lines];
-        Real tmp = 0.0;
-        ifstream ifspsi(a_params.read_from_data);
-        for (int i = 0; i < lines; ++i)
-        {
-            ifspsi >> tmp;
-            inputpsi[i] = tmp;
-        }
-        a_params.psi = inputpsi;
-    }
-    else
-    {
-        a_params.read_from_data = "none";
-    }
-
     // Initial conditions for the scalar field
     pp.get("G_Newton", a_params.G_Newton);
-    
-    pp.get("phi_background", a_params.phi_background);    
-    pp.get("pi_background", a_params.pi_background);    
     pp.get("phi_amplitude", a_params.phi_amplitude);
     pp.get("phi_wavelength", a_params.phi_wavelength);
+    pp.get("phi_background", a_params.phi_background);
+
     pp.get("pi_amplitude", a_params.pi_amplitude);
     pp.get("pi_wavelength", a_params.pi_wavelength);
+    pp.get("pi_background", a_params.pi_background);
 
-    #ifdef SET_2SF 
-    pp.get("phi2_background", a_params.phi2_background);
-    pp.get("pi2_background", a_params.pi2_background);
-
-    pp.get("phi2_amplitude", a_params.phi2_amplitude);
-    pp.get("phi2_wavelength", a_params.phi2_wavelength);
-    pp.get("pi2_amplitude", a_params.pi2_amplitude);
-    pp.get("pi2_wavelength", a_params.pi2_wavelength);
-    pp.get("g_coupling", a_params.g_coupling);
-    #endif
-
-
-
-
-    if (abs(a_params.phi_amplitude) > 0.0)
+    if (abs(a_params.phi_amplitude) > 0.0 || abs(a_params.phi_background) > 0.0 )
     {
         pout() << "Spacetime contains scalar field of amplitude "
-               << a_params.phi_amplitude <<  endl;
+               << a_params.phi_amplitude
+               << "\n with wavelenght of "
+               << a_params.phi_wavelength
+               << "\n and a background of "
+               << a_params.phi_background
+               << endl;
     }
-
-    if (abs(a_params.pi_amplitude) > 0.0)
-    {
-        pout() << "Spacetime contains scalar momentum of amplitude "
-               << a_params.pi_amplitude <<  endl;
-    }
-
-    #ifdef SET_2SF 
-    if (abs(a_params.phi2_amplitude) > 0.0)
-    {
-        pout() << "Spacetime contains scalar field 2 of amplitude "
-               << a_params.phi2_amplitude <<  endl;
-    }
-
-    if (abs(a_params.pi2_amplitude) > 0.0)
-    {
-        pout() << "Spacetime contains scalar momentum 2 of amplitude "
-               << a_params.pi2_amplitude <<  endl;
-    }
-    #endif
 
     // Initial conditions for the black holes
     pp.get("bh1_bare_mass", a_params.bh1_bare_mass);
@@ -159,14 +98,6 @@ void getPoissonParameters(PoissonParameters &a_params)
     {
         a_params.domainLength[idir] =
             a_params.coarsestDx * a_params.nCells[idir];
-    }
-
-    // If there is an HDF5 file to read from, the solver should use the params
-    // that are specified in that file's handle.
-    // We may need to add more parameters here, but this is sufficient for now.
-    if (a_params.read_from_file != "none")
-    {
-        Read_params_from_HDF5(a_params);
     }
 
     // Chombo refinement and load balancing criteria
@@ -220,41 +151,4 @@ void getPoissonParameters(PoissonParameters &a_params)
     a_params.coarsestDomain = crseDom;
 
     pout() << "periodicity = " << is_periodic << endl;
-}
-
-void Read_params_from_HDF5(PoissonParameters &aa_params)
-{
-    // Load main and level-0 headers
-    HDF5Handle handle(aa_params.read_from_file, HDF5Handle::OPEN_RDONLY);
-    HDF5HeaderData header, level_0_header;
-    header.readFromFile(handle);
-    handle.setGroup("level_0");
-    level_0_header.readFromFile(handle);
-    handle.close();
-
-    // reset various relevant parameters
-    aa_params.maxLevel = header.m_int["max_level"];
-    aa_params.numLevels = aa_params.maxLevel + 1;
-    for (int idir = 0; idir < SpaceDim; idir++)
-    {
-        aa_params.nCells[idir] = level_0_header.m_box["prob_domain"].size(idir);
-    }
-    aa_params.coarsestDx = level_0_header.m_real["dx"];
-    aa_params.refRatio.resize(aa_params.numLevels);
-    aa_params.refRatio.assign(2);
-    for (int idir = 0; idir < SpaceDim; idir++)
-    {
-        aa_params.domainLength[idir] =
-            aa_params.coarsestDx * aa_params.nCells[idir];
-    }
-
-    // Print what was changed
-    pout() << "The following params were read from file and changed:\n"
-           << "\tMax level = " << aa_params.maxLevel << endl
-           << "\tNumber of levels = " << aa_params.numLevels << endl
-           << "\tN = " << aa_params.nCells[0] << " " << aa_params.nCells[1]
-           << " " << aa_params.nCells[2] << endl
-           << "\tCoarsest dx = " << aa_params.coarsestDx << endl
-           << "\tLength of refRatio = " << aa_params.refRatio.size() << endl
-           << "\tDomain lengt = " << aa_params.domainLength[0] << endl;
 }

@@ -34,8 +34,6 @@
      &           )
 
       implicit none
-      integer*8 ch_flops
-      COMMON/ch_timer/ ch_flops
       integer ndpsicomp
       integer idpsilo0,idpsilo1,idpsilo2
       integer idpsihi0,idpsihi1,idpsihi2
@@ -113,8 +111,6 @@
      &           )
 
       implicit none
-      integer*8 ch_flops
-      COMMON/ch_timer/ ch_flops
       integer ndpsicomp
       integer idpsilo0,idpsilo1,idpsilo2
       integer idpsihi0,idpsihi1,idpsihi2
@@ -192,8 +188,6 @@
      &           )
 
       implicit none
-      integer*8 ch_flops
-      COMMON/ch_timer/ ch_flops
       integer ndpsicomp
       integer idpsilo0,idpsilo1,idpsilo2
       integer idpsihi0,idpsihi1,idpsihi2
@@ -321,8 +315,6 @@
      &           )
 
       implicit none
-      integer*8 ch_flops
-      COMMON/ch_timer/ ch_flops
       integer nlofdpsicomp
       integer ilofdpsilo0,ilofdpsilo1,ilofdpsilo2
       integer ilofdpsihi0,ilofdpsihi1,ilofdpsihi2
@@ -386,8 +378,6 @@
      &           )
 
       implicit none
-      integer*8 ch_flops
-      COMMON/ch_timer/ ch_flops
       integer nlofdpsicomp
       integer ilofdpsilo0,ilofdpsilo1,ilofdpsilo2
       integer ilofdpsihi0,ilofdpsihi1,ilofdpsihi2
@@ -451,8 +441,6 @@
      &           )
 
       implicit none
-      integer*8 ch_flops
-      COMMON/ch_timer/ ch_flops
       integer nlofdpsicomp
       integer ilofdpsilo0,ilofdpsilo1,ilofdpsilo2
       integer ilofdpsihi0,ilofdpsihi1,ilofdpsihi2
@@ -561,8 +549,6 @@
      &           )
 
       implicit none
-      integer*8 ch_flops
-      COMMON/ch_timer/ ch_flops
       integer nrescomp
       integer ireslo0,ireslo1,ireslo2
       integer ireshi0,ireshi1,ireshi2
@@ -638,8 +624,6 @@
      &           )
 
       implicit none
-      integer*8 ch_flops
-      COMMON/ch_timer/ ch_flops
       integer nrescomp
       integer ireslo0,ireslo1,ireslo2
       integer ireshi0,ireshi1,ireshi2
@@ -715,8 +699,6 @@
      &           )
 
       implicit none
-      integer*8 ch_flops
-      COMMON/ch_timer/ ch_flops
       integer nrescomp
       integer ireslo0,ireslo1,ireslo2
       integer ireshi0,ireshi1,ireshi2
@@ -834,8 +816,6 @@
      &           )
 
       implicit none
-      integer*8 ch_flops
-      COMMON/ch_timer/ ch_flops
       integer nrescomp
       integer ireslo0,ireslo1,ireslo2
       integer ireshi0,ireshi1,ireshi2
@@ -911,8 +891,6 @@
      &           )
 
       implicit none
-      integer*8 ch_flops
-      COMMON/ch_timer/ ch_flops
       integer nrescomp
       integer ireslo0,ireslo1,ireslo2
       integer ireshi0,ireshi1,ireshi2
@@ -988,8 +966,6 @@
      &           )
 
       implicit none
-      integer*8 ch_flops
-      COMMON/ch_timer/ ch_flops
       integer nrescomp
       integer ireslo0,ireslo1,ireslo2
       integer ireshi0,ireshi1,ireshi2
@@ -1095,8 +1071,6 @@
      &           )
 
       implicit none
-      integer*8 ch_flops
-      COMMON/ch_timer/ ch_flops
       integer CHF_ID(0:5,0:5)
       data CHF_ID/ 1,0,0,0,0,0 ,0,1,0,0,0,0 ,0,0,1,0,0,0 ,0,0,0,1,0,0 ,0,0,0,0,1,0 ,0,0,0,0,0,1 /
 

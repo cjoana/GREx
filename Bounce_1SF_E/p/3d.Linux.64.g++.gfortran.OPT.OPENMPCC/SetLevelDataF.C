@@ -16,8 +16,6 @@
      &           )
 
       implicit none
-      integer*8 ch_flops
-      COMMON/ch_timer/ ch_flops
       integer CHF_ID(0:5,0:5)
       data CHF_ID/ 1,0,0,0,0,0 ,0,1,0,0,0,0 ,0,0,1,0,0,0 ,0,0,0,1,0,0 ,0,0,0,0,1,0 ,0,0,0,0,0,1 /
 
@@ -76,8 +74,6 @@
      &           )
 
       implicit none
-      integer*8 ch_flops
-      COMMON/ch_timer/ ch_flops
       integer CHF_ID(0:5,0:5)
       data CHF_ID/ 1,0,0,0,0,0 ,0,1,0,0,0,0 ,0,0,1,0,0,0 ,0,0,0,1,0,0 ,0,0,0,0,1,0 ,0,0,0,0,0,1 /
 

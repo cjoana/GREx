@@ -65,11 +65,6 @@ void set_initial_conditions(LevelData<FArrayBox> &a_multigrid_vars,
             multigrid_vars_box(iv, c_phi_0) =
                 my_phi_function(loc, a_params.phi_background, a_params.phi_amplitude,
                                 a_params.phi_wavelength, a_params.domainLength);
-            multigrid_vars_box(iv, c_pi_0) =
-                my_pi_function(loc, a_params.pi_background, a_params.pi_amplitude,
-                                a_params.pi_wavelength, a_params.domainLength);
-
-            multigrid_vars_box(iv, c_rho_0) = 0.0;
 
             // set Aij for spin and momentum according to BH params
             set_binary_bh_Aij(multigrid_vars_box, iv, loc, a_params);
@@ -115,8 +110,7 @@ void set_rhs(LevelData<FArrayBox> &a_rhs,
 
             // rhs = m/8 psi_0^5 - 2 pi rho_grad psi_0  - laplacian(psi_0)
             Real m = 0;
-            set_m_value(m, multigrid_vars_box(iv, c_phi_0),
-                           multigrid_vars_box(iv, c_pi_0), a_params,
+            set_m_value(m, multigrid_vars_box(iv, c_phi_0), a_params,
                         constant_K);
 
             // Also \bar  A_ij \bar A^ij
@@ -180,8 +174,7 @@ void set_constant_K_integrand(LevelData<FArrayBox> &a_integrand,
             // integrand = -1.5*m + 1.5 * \bar A_ij \bar A^ij psi_0^-12 +
             // 24 pi rho_grad psi_0^-4  + 12*laplacian(psi_0)*psi^-5
             Real m = 0;
-            set_m_value(m, multigrid_vars_box(iv, c_phi_0),
-                          multigrid_vars_box(iv, c_pi_0), a_params, 0.0);
+            set_m_value(m, multigrid_vars_box(iv, c_phi_0), a_params, 0.0);
 
             // Also \bar  A_ij \bar A^ij
             Real A2 = 0.0;
@@ -237,8 +230,7 @@ void set_regrid_condition(LevelData<FArrayBox> &a_condition,
 
             // calculate contributions
             Real m = 0;    // m(K, rho) = 2/3K^2 - 16piG rho
-            set_m_value(m, multigrid_vars_box(iv, c_phi_0),
-                          multigrid_vars_box(iv, c_pi_0), a_params, 0.0);
+            set_m_value(m, multigrid_vars_box(iv, c_phi_0), a_params, 0.0);
 
             // Also \bar  A_ij \bar A^ij
             Real A2 = 0.0;
@@ -280,48 +272,29 @@ void set_update_psi0(LevelData<FArrayBox> &a_multigrid_vars,
 
         Box this_box = multigrid_vars_box.box();
         BoxIterator bit(this_box);
-
         for (bit.begin(); bit.ok(); ++bit)
         {
             IntVect iv = bit();
             multigrid_vars_box(iv, c_psi) += dpsi_box(iv, 0);
-
         }
     }
 }
 
-// Add the correction to psi0 after the solver operates
-void set_unitarity_dpsi(LevelData<FArrayBox> &a_dpsi)
+// m(K, rho) = 2/3K^2 - 16piG rho
+void set_m_value(Real &m, const Real &phi_here,
+                 const PoissonParameters &a_params, const Real constant_K)
 {
 
-    DataIterator dit = a_dpsi.dataIterator();
-    for (dit.begin(); dit.ok(); ++dit)
-    {
-        FArrayBox &dpsi_box = a_dpsi[dit()];
+    // KC TODO:
+    // For now rho is just the gradient term which is kept separate
+    // ... may want to add V(phi) and phidot/Pi here later though   // CJ added : YES! I WANT!
+    Real Pi_field = 0.0;
+    Real V_of_phi = 1e-16;    // CJ added: rough Higgs (hard coded)
+    Real rho = 0.5 * Pi_field * Pi_field + V_of_phi;
 
-        Box this_box = dpsi_box.box();
-        BoxIterator bit(this_box);
-
-        Real mean = 0.0;
-        Real cnt = 0;
-        for (bit.begin(); bit.ok(); ++bit)
-        {
-            cnt++;
-            IntVect iv = bit();
-            mean += dpsi_box(iv, 0); //add2
-        }
-        mean =  mean/cnt;
-        for (bit.begin(); bit.ok(); ++bit)
-        {
-            IntVect iv = bit();
-            dpsi_box(iv, 0) += -mean; // add2
-        }
-    }
+    m = (2.0 / 3.0) * (constant_K * constant_K) -
+        16.0 * M_PI * a_params.G_Newton * rho;
 }
-
-
-//function set_m_value moved to my_phi_function
-
 
 // The coefficient of the I operator on dpsi
 void set_a_coef(LevelData<FArrayBox> &a_aCoef,
@@ -354,8 +327,8 @@ void set_a_coef(LevelData<FArrayBox> &a_aCoef,
             loc -= a_params.domainLength / 2.0;
             // m(K, phi) = 2/3 K^2 - 16 pi G rho
             Real m;
-            set_m_value(m, multigrid_vars_box(iv, c_phi_0),
-                          multigrid_vars_box(iv, c_pi_0), a_params, constant_K);
+            set_m_value(m, multigrid_vars_box(iv, c_phi_0), a_params,
+                        constant_K);
 
             // Also \bar  A_ij \bar A^ij
             Real A2 = 0.0;
@@ -392,96 +365,11 @@ void set_b_coef(LevelData<FArrayBox> &a_bCoef,
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// set the rho from the scalar field
-void set_rho_value(LevelData<FArrayBox> &a_rhs,
-             LevelData<FArrayBox> &a_multigrid_vars, const RealVect &a_dx,
-             const PoissonParameters &a_params, const Real constant_K)
-{
-
-    CH_assert(a_multigrid_vars.nComp() == NUM_MULTIGRID_VARS);
-
-    DataIterator dit = a_rhs.dataIterator();
-    for (dit.begin(); dit.ok(); ++dit)
-    {
-        FArrayBox &multigrid_vars_box = a_multigrid_vars[dit()];
-        FArrayBox &rhs_box = a_rhs[dit()];
-        rhs_box.setVal(0.0, 0);
-        Box this_box = rhs_box.box(); // no ghost cells
-
-        // calculate the rho contribution from gradients of phi
-        FArrayBox rho_gradient(this_box, 1);
-        FORT_GETRHOGRADPHIF(CHF_FRA1(rho_gradient, 0),
-                            CHF_CONST_FRA1(multigrid_vars_box, c_phi_0),
-                            CHF_CONST_REAL(a_dx[0]), CHF_BOX(this_box));
-
-        BoxIterator bit(this_box);
-        for (bit.begin(); bit.ok(); ++bit)
-        {
-            IntVect iv = bit();
-            RealVect loc(iv + 0.5 * RealVect::Unit);
-            loc *= a_dx;
-            loc -= a_params.domainLength / 2.0;
-
-            // rhs = m/8 psi_0^5 - 2 pi rho_grad psi_0  - laplacian(psi_0)
-            Real m = 0;
-            set_m_value(m, multigrid_vars_box(iv, c_phi_0),
-                           multigrid_vars_box(iv, c_pi_0), a_params,
-                        0.0);
-
-            Real psi_bh = set_binary_bh_psi(loc, a_params);
-            Real psi_0 = multigrid_vars_box(iv, c_psi) + psi_bh;
-
-            multigrid_vars_box(iv, c_rho_0) =
-                -  m / (16.0 * M_PI * a_params.G_Newton )  +
-                rho_gradient(iv, 0) * pow(psi_0, -4.0);
-        }
-    }
-} // end set_rho
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // used to set output data for all ADM Vars for GRChombo restart
 void set_output_data(LevelData<FArrayBox> &a_grchombo_vars,
                      LevelData<FArrayBox> &a_multigrid_vars,
                      const PoissonParameters &a_params, const RealVect &a_dx,
-                     const Real &constant_K )
+                     const Real &constant_K)
 {
 
     CH_assert(a_grchombo_vars.nComp() == NUM_GRCHOMBO_VARS);
@@ -525,29 +413,9 @@ void set_output_data(LevelData<FArrayBox> &a_grchombo_vars,
             grchombo_vars_box(iv, c_chi) = chi;
             Real factor = pow(chi, 1.5);
 
-
-
-
-
-
-
-            grchombo_vars_box(iv, c_rho) = multigrid_vars_box(iv, c_rho_0);
-
-
-
-
-
-
-
-
-
-
-
-
             // Copy phi and Aij across - note this is now \tilde Aij not \bar
             // Aij
             grchombo_vars_box(iv, c_phi) = multigrid_vars_box(iv, c_phi_0);
-            grchombo_vars_box(iv, c_Pi) = multigrid_vars_box(iv, c_pi_0);
             grchombo_vars_box(iv, c_A11) =
                 multigrid_vars_box(iv, c_A11_0) * factor;
             grchombo_vars_box(iv, c_A12) =

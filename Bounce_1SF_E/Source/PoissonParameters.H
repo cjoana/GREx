@@ -47,23 +47,12 @@ class PoissonParameters
     Real alpha;
     Real beta;
     Real G_Newton;
-    Real phi_background;
-    Real phi_amplitude;
-    Real phi_wavelength;
-    Real pi_background;
-    Real pi_amplitude;
-    Real pi_wavelength;
-    
-    #ifdef SET_2SF 
-    Real phi2_background;
-    Real phi2_amplitude;
-    Real phi2_wavelength;
-    Real pi2_background;
-    Real pi2_amplitude;
-    Real pi2_wavelength;
-    Real g_coupling;
-    #endif
-
+    Real phi_background;  // CJ added
+    Real phi_amplitude;   // CJ added
+    Real phi_wavelength;   // CJ added
+    Real pi_background;  // CJ added
+    Real pi_amplitude;   // CJ added
+    Real pi_wavelength;   // CJ added
     Real bh1_bare_mass;
     Real bh2_bare_mass;
     Real bh1_spin;
@@ -72,16 +61,9 @@ class PoissonParameters
     Real bh2_momentum;
     Real bh1_offset;
     Real bh2_offset;
-    std::string read_from_file;
-    std::string read_from_data;
-    Real *psi;
-    Real spacing;
 };
 
 /// get stuff from input file
 extern void getPoissonParameters(PoissonParameters &a_params);
-
-// reads params from HDF5 file
-void Read_params_from_HDF5(PoissonParameters &aa_params);
 
 #endif

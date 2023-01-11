@@ -55,8 +55,7 @@ int set_grids(Vector<DisjointBoxLayout> &vectGrids, PoissonParameters &a_params)
     procAssign[0].resize(oldBoxes[0].size());
     LoadBalance(procAssign[0], oldBoxes[0]);
     vectGrids[0].define(oldBoxes[0], procAssign[0], vectDomain[0]);
-    vectRHS[0] = new LevelData<FArrayBox>(vectGrids[0], NUM_CONSTRAINTS_VARS,
-                                          IntVect::Zero);
+    vectRHS[0] = new LevelData<FArrayBox>(vectGrids[0], 1, IntVect::Zero);
 
     int topLevel = 0;
     bool moreLevels = (maxLevel > 0);
@@ -87,8 +86,8 @@ int set_grids(Vector<DisjointBoxLayout> &vectGrids, PoissonParameters &a_params)
 
             temp_multigrid_vars = new LevelData<FArrayBox>(
                 vectGrids[level], NUM_MULTIGRID_VARS, 3 * IntVect::Unit);
-            temp_dpsi = new LevelData<FArrayBox>(
-                vectGrids[level], NUM_CONSTRAINTS_VARS, 3 * IntVect::Unit);
+            temp_dpsi = new LevelData<FArrayBox>(vectGrids[level], 1,
+                                                 3 * IntVect::Unit);
 
             set_initial_conditions(*temp_multigrid_vars, *temp_dpsi, dxLevel,
                                    a_params);
@@ -136,8 +135,8 @@ int set_grids(Vector<DisjointBoxLayout> &vectGrids, PoissonParameters &a_params)
                                            vectDomain[lev]);
             vectGrids[lev] = newDBL;
             delete vectRHS[lev];
-            vectRHS[lev] = new LevelData<FArrayBox>(
-                vectGrids[lev], NUM_CONSTRAINTS_VARS, IntVect::Zero);
+            vectRHS[lev] =
+                new LevelData<FArrayBox>(vectGrids[lev], 1, IntVect::Zero);
         } // end loop over levels for initialization
 
         // figure out whether we need another pass through grid generation

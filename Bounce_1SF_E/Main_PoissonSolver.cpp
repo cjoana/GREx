@@ -3,11 +3,6 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-
-#ifndef SET_2SF 
-// #define SET_2SF   //  uncomment if 2 Scalar fields  wanted
-#endif
-
 #include "AMRIO.H"
 #include "BRMeshRefine.H"
 #include "BiCGStabSolver.H"
@@ -29,9 +24,6 @@
 #include "computeSum.H"
 #include <iostream>
 
-#include "SetMetric.H"
-
-#include "ReadHDF5.H"
 #ifdef CH_Linux
 // Should be undefined by default
 //#define TRAP_FPE
@@ -89,76 +81,31 @@ int poissonSolve(const Vector<DisjointBoxLayout> &a_grids,
     {
         multigrid_vars[ilev] =
             new LevelData<FArrayBox>(a_grids[ilev], NUM_MULTIGRID_VARS, ghosts);
-        dpsi[ilev] = new LevelData<FArrayBox>(a_grids[ilev],
-                                              NUM_CONSTRAINTS_VARS, ghosts);
-        rhs[ilev] = new LevelData<FArrayBox>(
-            a_grids[ilev], NUM_CONSTRAINTS_VARS, IntVect::Zero);
-        integrand[ilev] = new LevelData<FArrayBox>(
-            a_grids[ilev], NUM_CONSTRAINTS_VARS, IntVect::Zero);
-        aCoef[ilev] =
-            RefCountedPtr<LevelData<FArrayBox>>(new LevelData<FArrayBox>(
-                a_grids[ilev], NUM_CONSTRAINTS_VARS, IntVect::Zero));
-        bCoef[ilev] =
-            RefCountedPtr<LevelData<FArrayBox>>(new LevelData<FArrayBox>(
-                a_grids[ilev], NUM_CONSTRAINTS_VARS, IntVect::Zero));
+        dpsi[ilev] = new LevelData<FArrayBox>(a_grids[ilev], 1, ghosts);
+        rhs[ilev] = new LevelData<FArrayBox>(a_grids[ilev], 1, IntVect::Zero);
+        integrand[ilev] =
+            new LevelData<FArrayBox>(a_grids[ilev], 1, IntVect::Zero);
+        aCoef[ilev] = RefCountedPtr<LevelData<FArrayBox>>(
+            new LevelData<FArrayBox>(a_grids[ilev], 1, IntVect::Zero));
+        bCoef[ilev] = RefCountedPtr<LevelData<FArrayBox>>(
+            new LevelData<FArrayBox>(a_grids[ilev], 1, IntVect::Zero));
         vectDomains[ilev] = domLev;
         vectDx[ilev] = dxLev;
         // set initial guess for psi and zero dpsi
         // and values for other multigrid sources - phi and Aij
-
-pout() << " !! Setting initial data ... " << endl;
-
         set_initial_conditions(*multigrid_vars[ilev], *dpsi[ilev], vectDx[ilev],
                                a_params);
-
-pout() << " !! Flag0  ... . " << endl;
-
-        if (a_params.read_from_file != "none")
-        {
-            readHDF5(*multigrid_vars[ilev], a_grids, a_params, ilev, ghosts);
-        }
-
-pout() << " !! Flag1  ... . " << endl;
-
-        // For interlevel ghosts
-        if (ilev > 0)
-        {
-            QuadCFInterp quadCFI(a_grids[ilev], &a_grids[ilev - 1],
-                                 vectDx[ilev][0], a_params.refRatio[ilev],
-                                 NUM_MULTIGRID_VARS, vectDomains[ilev]);
-            quadCFI.coarseFineInterp(*multigrid_vars[ilev], *multigrid_vars[ilev - 1]);
-        }
-
-
-pout() << " !! Flag 2  ... . " << endl;
-        // For intralevel ghosts - this is done in exchange_function
-        // but need the exchange copier object to do this
-        Copier exchange_copier;
-        exchange_copier.exchangeDefine(a_grids[ilev], ghosts);
-
-        exchange_function(*multigrid_vars[ilev], exchange_copier);
-
-pout() << " !! Flag3 metric  ... . " << endl;
-
-        calculate_metric_components(*multigrid_vars[ilev], vectDx[ilev],
-                                    a_params);
 
         // prepare temp dx, domain vars for next level
         dxLev /= a_params.refRatio[ilev];
         domLev.refine(a_params.refRatio[ilev]);
-        
-pout() << " !! ... Done. " << endl;
     }
-
 
     // set up linear operator
     int lBase = 0;
     MultilevelLinearOp<FArrayBox> mlOp;
     BiCGStabSolver<Vector<LevelData<FArrayBox> *>>
         solver; // define solver object
-
-
-pout() << " !! Solver objected created, reading params...  " << endl;
 
     // default or read in solver params
     int numMGIter = 1;
@@ -182,8 +129,9 @@ pout() << " !! Solver objected created, reading params...  " << endl;
     int max_NL_iter = 4;
     pp.query("max_NL_iterations", max_NL_iter);
 
+    // Real Pi_field = 0.0;                                                         // CJ delete
+    // set_Pi_field(Pi_field);                                                      // CJ delete
 
-pout() << " !! Starting interation...  " << endl;
     // Iterate linearised Poisson eqn for NL solution
     Real dpsi_norm = 0.0;
     Real constant_K = 0.0;
@@ -222,6 +170,7 @@ pout() << " !! Starting interation...  " << endl;
             set_rhs(*rhs[ilev], *multigrid_vars[ilev], vectDx[ilev], a_params,
                     constant_K);
         }
+
         // set up solver factory
         RefCountedPtr<AMRLevelOpFactory<LevelData<FArrayBox>>> opFactory =
             RefCountedPtr<AMRLevelOpFactory<LevelData<FArrayBox>>>(
@@ -231,6 +180,7 @@ pout() << " !! Starting interation...  " << endl;
         // define the multi level operator
         mlOp.define(a_grids, a_params.refRatio, vectDomains, vectDx, opFactory,
                     lBase);
+
         // set the more solver params
         bool homogeneousBC = false;
         solver.define(&mlOp, homogeneousBC);
@@ -246,18 +196,22 @@ pout() << " !! Starting interation...  " << endl;
         // Engage!
         solver.solve(dpsi, rhs);
 
+        set_unitarity_dpsi(*dpsi[0]);  // test
+
         // Add the solution to the linearised eqn to the previous iteration
         // ie psi -> psi + dpsi
         // need to fill interlevel and intralevel ghosts first in dpsi
         for (int ilev = 0; ilev < nlevels; ilev++)
         {
 
+            set_unitarity_dpsi(*dpsi[ilev]);  // test
+
             // For interlevel ghosts
             if (ilev > 0)
             {
                 QuadCFInterp quadCFI(a_grids[ilev], &a_grids[ilev - 1],
                                      vectDx[ilev][0], a_params.refRatio[ilev],
-                                     NUM_CONSTRAINTS_VARS, vectDomains[ilev]);
+                                     1, vectDomains[ilev]);
                 quadCFI.coarseFineInterp(*dpsi[ilev], *dpsi[ilev - 1]);
             }
 
@@ -269,17 +223,26 @@ pout() << " !! Starting interation...  " << endl;
             // now the update
             set_update_psi0(*multigrid_vars[ilev], *dpsi[ilev],
                             exchange_copier);
+
+            // rewrite rho_0
+            set_rho_value(*rhs[ilev], *multigrid_vars[ilev], vectDx[ilev], a_params,
+                            constant_K);
         }
 
         // check if converged or diverging and if so exit NL iteration for loop
-        dpsi_norm =
-            computeNorm(dpsi, a_params.refRatio, a_params.coarsestDx,
-                        Interval(0, 0)); // TODO JCAurre: not completely sure
+        dpsi_norm = computeNorm(dpsi, a_params.refRatio, a_params.coarsestDx,
+                                Interval(0, 0));
         pout() << "The norm of dpsi after step " << NL_iter + 1 << " is "
                << dpsi_norm << endl;
-        if (dpsi_norm < tolerance || dpsi_norm > 1e5)
+
+        if(NL_iter > 10){
+        if (dpsi_norm < tolerance || dpsi_norm > 1e10)                                           // CJ added : diverging criteria hard coded
         {
-            break;
+          // output the data to check the last solution
+          output_solver_data(dpsi, rhs, multigrid_vars, a_grids, a_params,
+                             NL_iter+1);
+          break;
+        }
         }
 
     } // end NL iteration loop
@@ -288,11 +251,13 @@ pout() << " !! Starting interation...  " << endl;
 
     // Mayday if result not converged at all - using a fairly generous threshold
     // for this as usually non convergence means everything goes nuts
-    if (dpsi_norm > 1e-1)
-    {
-        MayDay::Error(
-            "NL iterations did not converge - may need a better initial guess");
-    }
+
+
+    //if (dpsi_norm > 1e-1)
+    //{
+        //MayDay::Error(
+            //"NL iterations did not converge - may need a better initial guess");              // Mayday
+    //}
 
     // now output final data in a form which can be read as a checkpoint file
     // for the GRChombo AMR time dependent runs
@@ -356,14 +321,7 @@ int main(int argc, char *argv[])
 
         // set up the grids, using the rhs for tagging to decide
         // where needs additional levels
-        if (params.read_from_file == "none")
-        {
-            set_grids(grids, params);
-        }
-        else
-        {
-            readgrids(grids, params);
-        }
+        set_grids(grids, params);
 
         // Solve the equations!
         status = poissonSolve(grids, params);
