@@ -493,7 +493,7 @@ void set_m_value(Real &m, const Real &phi_here,
         16.0 * M_PI * a_params.G_Newton * rho;
 }
 
-
+#ifdef SET_2SF
 void set_m_value(Real &m, const Real &phi_here, const Real &phi2_here,
                  const PoissonParameters &a_params, const Real constant_K)
 {
@@ -504,6 +504,7 @@ void set_m_value(Real &m, const Real &phi_here, const Real &phi2_here,
     m = (2.0 / 3.0) * (constant_K * constant_K) -
         16.0 * M_PI * a_params.G_Newton * rho;
 }
+#endif
 
 // The coefficient of the I operator on dpsi
 void set_a_coef(LevelData<FArrayBox> &a_aCoef,
