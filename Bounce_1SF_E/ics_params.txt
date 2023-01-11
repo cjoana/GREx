@@ -62,25 +62,32 @@ G_Newton = 1.0
 #data_lines = number_of_lines
 #data_spacing = dx_spacing
 
-phi_background = 2.0
-phi_amplitude = 0.3
+###### SF1 ##################
+
+phi_background = 0
+phi_amplitude = 1e-4
 phi_wavelength = 1
 
 pi_background = 0
 pi_amplitude = 0
 pi_wavelength = 1
 
+##### SF2 + g ################
 
-phi2_background = 0.5
-phi2_amplitude = 0.1
-phi2_wavelength = 1
+## phi2_background = 0.5
+## phi2_amplitude = 0.1
+## phi2_wavelength = 1
 
-pi2_background = 0
-pi2_amplitude = 0
-pi2_wavelength = 1
+## pi2_background = 0
+## pi2_amplitude = 0
+## pi2_wavelength = 1
 
+##g_coupling = 0.001
 
-g_coupling = 0.001
+########################
+
+# Contracting K ?
+sign_K = 1  # 1 or -1
 
 # initial conditions for Binary BH spacetimes
 # (can be with or without periodic BCs,

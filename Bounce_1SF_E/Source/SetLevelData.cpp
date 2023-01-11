@@ -141,6 +141,7 @@ pout() << " !!! Flag1  ... " << endl;
                 my_pi_function(loc, a_params.pi_background, a_params.pi_amplitude,
                                a_params.pi_wavelength, a_params.domainLength);
 
+#ifdef SET_2SF 
              multigrid_vars_box(iv, c_phi2_0) =
                  my_phi2_function(loc, a_params.phi2_background, a_params.phi2_amplitude,
                                  a_params.phi2_wavelength, a_params.domainLength);
@@ -148,6 +149,8 @@ pout() << " !!! Flag1  ... " << endl;
              multigrid_vars_box(iv, c_pi2_0) =
                  my_pi2_function(loc, a_params.pi2_background, a_params.pi2_amplitude,
                                 a_params.pi2_wavelength, a_params.domainLength);
+#endif
+
 
             multigrid_vars_box(iv, c_h11_0) = 1.0;
             multigrid_vars_box(iv, c_h12_0) = 0.0;
@@ -206,7 +209,9 @@ void set_rhs(LevelData<FArrayBox> &a_rhs,
             Real m = 0;
             set_m_value(m,
                         multigrid_vars_box(iv, c_phi_0),
+#ifdef SET_2SF 
                         multigrid_vars_box(iv, c_phi2_0),
+#endif               
                         a_params,
                         constant_K);
 
@@ -305,7 +310,9 @@ void set_constant_K_integrand(LevelData<FArrayBox> &a_integrand,
             Real m = 0;
             set_m_value(m,
                         multigrid_vars_box(iv, c_phi_0),
+#ifdef SET_2SF 
                         multigrid_vars_box(iv, c_phi2_0),
+#endif               
                         a_params,
                         0);
 
@@ -393,7 +400,9 @@ void set_regrid_condition(LevelData<FArrayBox> &a_condition,
             Real m = 0;
             set_m_value(m,
                         multigrid_vars_box(iv, c_phi_0),
+#ifdef SET_2SF 
                         multigrid_vars_box(iv, c_phi2_0),
+#endif               
                         a_params,
                         0);
 
@@ -469,13 +478,26 @@ void set_update_psi0(LevelData<FArrayBox> &a_multigrid_vars,
 }
 
 // m(K, rho) = 2/3K^2 - 16piG rho
-void set_m_value(Real &m, const Real &phi_here, const Real &phi2_here,
+
+void set_m_value(Real &m, const Real &phi_here,
                  const PoissonParameters &a_params, const Real constant_K)
 {
 
     // KC TODO:
     // For now rho is just the gradient term which is kept separate
     // ... may want to add V(phi) and phidot/Pi here later though
+    Real V_of_phi = my_potential_function(phi_here, a_params);
+    Real rho = V_of_phi;
+
+    m = (2.0 / 3.0) * (constant_K * constant_K) -
+        16.0 * M_PI * a_params.G_Newton * rho;
+}
+
+
+void set_m_value(Real &m, const Real &phi_here, const Real &phi2_here,
+                 const PoissonParameters &a_params, const Real constant_K)
+{
+
     Real V_of_phi = my_potential_function(phi_here, phi2_here, a_params);
     Real rho = V_of_phi;
 
@@ -529,7 +551,9 @@ void set_a_coef(LevelData<FArrayBox> &a_aCoef,
             Real m;
             set_m_value(m,
                         multigrid_vars_box(iv, c_phi_0),
+                        #ifdef SET_2SF 
                         multigrid_vars_box(iv, c_phi2_0),
+                        #endif
                         a_params,
                         constant_K);
 

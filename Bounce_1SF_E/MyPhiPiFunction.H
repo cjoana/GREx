@@ -13,12 +13,12 @@ Real my_phi_function(RealVect loc, Real background, Real amplitude, Real wavelen
 //        return amplitude * exp(-r2 / wavelength);
 
     Real perturb = 0;
-    int nmodes = 10;
+    // int nmodes = 2;
     
     double fact = 1;
     double rand = 0.85698235; 
 
-    for(int i=3; i<nmodes; i++){
+    for(int i=2; i<=2; i++){
 
 	    rand += rand;
 	    perturb += amplitude * (sin(2 * M_PI * loc[0] * i / L[0] + rand) +
@@ -28,16 +28,16 @@ Real my_phi_function(RealVect loc, Real background, Real amplitude, Real wavelen
     };
 
 
-    fact = 0.01;
-    for(int i=1; i<3; i++){
+    // fact = 0.01;
+    // for(int i=2; i<=2; i++){
 
-            rand += rand;
+    //         rand += rand;
 
-            perturb += amplitude *  fact* (sin(2 * M_PI * loc[0] * i / L[0] + rand) +
-                        sin(2 * M_PI * loc[1] * i / L[1] + rand) +
-                        sin(2 * M_PI * loc[2] * i / L[2] + rand)
-                        );
-    };
+    //         perturb += amplitude *  fact* (sin(2 * M_PI * loc[0] * i / L[0] + rand) +
+    //                     sin(2 * M_PI * loc[1] * i / L[1] + rand) +
+    //                     sin(2 * M_PI * loc[2] * i / L[2] + rand)
+    //                     );
+    // };
     
 
     // sine waves in 3 directions - use with periodic BCs

@@ -53,6 +53,8 @@ class PoissonParameters
     Real pi_background;
     Real pi_amplitude;
     Real pi_wavelength;
+    
+    #ifdef SET_2SF 
     Real phi2_background;
     Real phi2_amplitude;
     Real phi2_wavelength;
@@ -60,6 +62,8 @@ class PoissonParameters
     Real pi2_amplitude;
     Real pi2_wavelength;
     Real g_coupling;
+    #endif
+
     Real bh1_bare_mass;
     Real bh2_bare_mass;
     Real bh1_spin;

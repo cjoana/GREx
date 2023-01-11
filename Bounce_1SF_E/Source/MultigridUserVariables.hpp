@@ -17,8 +17,11 @@ enum
 
 	c_phi_0, // matter field
 	c_pi_0,
+
+#ifdef SET_2SF 
   c_phi2_0,
   c_pi2_0,
+#endif
 
     c_h11_0,
     c_h12_0,
@@ -52,7 +55,9 @@ static constexpr char const *variable_names[NUM_MULTIGRID_VARS] = {
 
 	"phi_0", "pi_0",
 
+#ifdef SET_2SF 
   "phi2_0", "pi2_0",
+#endif
 
 	"h11_0", "h12_0", "h13_0", "h22_0", "h23_0", "h33_0",
 

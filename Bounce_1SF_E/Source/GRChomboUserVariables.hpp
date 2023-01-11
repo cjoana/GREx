@@ -46,8 +46,10 @@ enum
     c_phi, // matter field added
     c_Pi,  //(minus) conjugate momentum
 
+#ifdef SET_2SF 
     c_phi2, // matter field added
     c_Pi2,  //(minus) conjugate momentum
+#endif 
 
 	// c_rho,
 	// c_S1,
@@ -85,7 +87,9 @@ static constexpr char const *variable_names[NUM_GRCHOMBO_VARS] = {
 
     "phi",    "Pi",
 
+  #ifdef SET_2SF 
     "phi2",    "Pi2",
+  #endif 
 
     // "rho",
 

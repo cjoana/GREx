@@ -69,19 +69,23 @@ void getPoissonParameters(PoissonParameters &a_params)
     // Initial conditions for the scalar field
     pp.get("G_Newton", a_params.G_Newton);
     
-    pp.get("phi_background", a_params.phi_background);
-    pp.get("phi2_background", a_params.phi2_background);
-    pp.get("pi_background", a_params.pi_background);
-    pp.get("pi2_background", a_params.pi2_background);
+    pp.get("phi_background", a_params.phi_background);    
+    pp.get("pi_background", a_params.pi_background);    
     pp.get("phi_amplitude", a_params.phi_amplitude);
     pp.get("phi_wavelength", a_params.phi_wavelength);
     pp.get("pi_amplitude", a_params.pi_amplitude);
     pp.get("pi_wavelength", a_params.pi_wavelength);
+
+    #ifdef SET_2SF 
+    pp.get("phi2_background", a_params.phi2_background);
+    pp.get("pi2_background", a_params.pi2_background);
+
     pp.get("phi2_amplitude", a_params.phi2_amplitude);
     pp.get("phi2_wavelength", a_params.phi2_wavelength);
     pp.get("pi2_amplitude", a_params.pi2_amplitude);
     pp.get("pi2_wavelength", a_params.pi2_wavelength);
     pp.get("g_coupling", a_params.g_coupling);
+    #endif
 
 
 
@@ -98,6 +102,7 @@ void getPoissonParameters(PoissonParameters &a_params)
                << a_params.pi_amplitude <<  endl;
     }
 
+    #ifdef SET_2SF 
     if (abs(a_params.phi2_amplitude) > 0.0)
     {
         pout() << "Spacetime contains scalar field 2 of amplitude "
@@ -109,6 +114,7 @@ void getPoissonParameters(PoissonParameters &a_params)
         pout() << "Spacetime contains scalar momentum 2 of amplitude "
                << a_params.pi2_amplitude <<  endl;
     }
+    #endif
 
     // Initial conditions for the black holes
     pp.get("bh1_bare_mass", a_params.bh1_bare_mass);

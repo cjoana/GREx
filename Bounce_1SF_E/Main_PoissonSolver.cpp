@@ -3,6 +3,11 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
+
+#ifndef SET_2SF 
+// #define SET_2SF   //  uncomment if 2 Scalar fields  wanted
+#endif
+
 #include "AMRIO.H"
 #include "BRMeshRefine.H"
 #include "BiCGStabSolver.H"
