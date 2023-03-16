@@ -20,41 +20,40 @@ FILEPATH = os.path.dirname(os.path.realpath(__file__)) # os.path.realpath(__file
 sys.path.append(FILEPATH)
 print(FILEPATH)
 
-from analysis_functions import *
+# from analysis_functions import exps, dsets_path, prefx
 import analysis_functions as af 
 
-units_override = {"length_unit": (1.0, "l_pl"),
-				  "time_unit": (1.0, "t_pl"),
-				  "mass_unit": (1.0, "m_pl")}
-unit_system = 'planck'
 
 
-# dsets_path = '/public/home/cjoana/outpbh/{exp}/hdf5/'
-# h5_filename = './data/{exp}_test.hdf5'
-dsets_path = '/Volumes/Expansion/data/{exp}/hdf5/'
-h5_filename = './h5_data/{exp}_test.hdf5'
+def _add_fields(ds): 
+    ds.add_field(('chombo', 'volcell'), function=af._volcell, # units="l_pl**3", 
+                take_log=False, sampling_type="local",  display_name='volcell')
+    ds.add_field(('chombo', 'N'), function=af._N, # units="", 
+                sampling_type="local", take_log=False, display_name='N')
+    
+    return ds
 
 
-prefx = "run1p_"  
-exps = [
-    "asym04"
-]
-
-for exp in exps:
+for exp in af.exps:
     print('Initiating collection of ', exp) 
-		
+
+    # Load data
+
     i_dset = 1000
     
     print("Loading simulated data ")
-    data_path = dsets_path.format(exp=exp)
-    pfiles = data_path + prefx + '{0}.3d.hdf5'
+    data_path = af.dsets_path.format(exp=exp)
+    pfiles = data_path + af.prefx + '{0}.3d.hdf5'
     dset_fn = af.dfn(pfiles, i_dset)
-    ds = yt.frontends.chombo.ChomboDataset(dset_fn, unit_system=unit_system, units_override=units_override)
-    ds.add_field(('chombo', 'volcell'), function=af._volcell, # units="l_pl**3", 
-                 take_log=False, sampling_type="local",  display_name='volcell')
-    ds.add_field(('chombo', 'N'), function=af._N, # units="", 
-                 sampling_type="local", take_log=False, display_name='N')
+    ds = yt.frontends.chombo.ChomboDataset(dset_fn, unit_system=af.unit_system, units_override=af.units_override)
+    ds = _add_fields(ds)
     
+
+
+
+
+
+    # Read & extract Sim data
 
     reg = ds.r[:]
     vol_cell = np.ndarray.flatten(reg['volcell'])
@@ -62,5 +61,16 @@ for exp in exps:
     print(f"Volume of box is {vol.d},  effective L = {vol.d **(1/3)}")
     
     
-    h5_fn = h5_filename.format(exp=exp)
+    # Save data
+
+    h5_fn = af.h5_filename.format(exp=exp)
     print('Creating h5-analysis ', h5_fn)
+
+
+    # load BH data
+
+
+    ##  lapse, rho, trA2, ricci_scalar, N,  K, S, W, omega, Ham, Ham_abs_terms, Mom, Mom_abs_terms
+    ##  delta_rho, 
+    ##  Volume,
+    ##                          __>>  mean, std, min, max, "center = minlapse"
