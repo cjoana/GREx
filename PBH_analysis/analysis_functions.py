@@ -1,65 +1,58 @@
 ##### ######   ##
-#		 #	   ##   Params and function 
-#	  #  #	   ##  
+#        #     ##   Params and function 
+#     #  #     ##  
 ##### ####     ##
 
 import numpy as np
-
-# dsets_path = '/public/home/cjoana/outpbh/{exp}/hdf5/'
-# h5_filename = './data/{exp}_test.hdf5'
-dsets_path = '/Volumes/Expansion/data/{exp}/hdf5/'
-h5_filename = './h5_data/{exp}_test.hdf5'
-
-prefx = "run1p_"  
-exps = ["asym04", ]
-
-
-############################################  Set vars 
-
-global_vars = [
-	['Ham', False],
-	['Ham_abs_terms', False], 
-	['Mom', False],
-	['Mom_abs_terms', False],
-	['K', 'all'],
-	['N', 'all'],
-	['ricci_scalar', 'all'],
-	['trA2', 'all'],
-	['rho', 'all'],
-	['omega', 'all'],
-	['W', 'all'],
-	['lapse', 'all'],
-	['delta_rho', 'all'],
-	#
-]
-
-special_global_vars = [
-	'time',  'Vol', 'dset',
-]
+import yt 
 
 
 ############################################## functions
 
 def dfn(path, num):
-	return path.format(str(num).zfill(6))
+    return path.format(str(num).zfill(6))
+
+def load_dataset(num, exp=None, dirpath=None, fullpath=None):
+    if fullpath: 
+        dset_fn = fullpath
+    elif dirpath:
+        dir_path = dirpath 
+        pfiles = dir_path + prefx + '{0}.3d.hdf5'
+        dset_fn = dfn(pfiles, num)
+    else: 
+        dir_path = dir_dsets_path.format(exp=exp)
+        pfiles = dir_path + prefx + '{0}.3d.hdf5'
+        dset_fn = dfn(pfiles, num)
+    ds = yt.frontends.chombo.ChomboDataset(dset_fn, unit_system=unit_system, units_override=units_override)
+    ds = _add_fields(ds)
+    return ds
+
 
 units_override = {"length_unit": (1.0, "l_pl"),
-				  "time_unit": (1.0, "t_pl"),
-				  "mass_unit": (1.0, "m_pl")}
+                  "time_unit": (1.0, "t_pl"),
+                  "mass_unit": (1.0, "m_pl")}
 unit_system = 'planck'
 
-#######################################  add derives cells
+#######################################  add derives cells and functions
+
+def _add_fields(ds): 
+    ds.add_field(('chombo', 'volcell'), function=_volcell, # units="l_pl**3", 
+                take_log=False, sampling_type="local",  display_name='volcell')
+    ds.add_field(('chombo', 'N'), function=_N, # units="", 
+                sampling_type="local", take_log=False, display_name='N')
+    
+    return ds
 
 def _N(field, data):
-	return np.log(data['chi'] ** -0.5) 
+    return np.log(data['chi'] ** -0.5) 
 
 def _volcell(field, data):
-	var = data["dx"] ** 3 * data["chi"] ** (-3 / 2)
-	return var
+    var = data["dx"] ** 3 * data["chi"] ** (-3 / 2)
+    return var
 
 def _omega(field, data):
-	var = data["S"] / data["rho"] / 3
-	return var
+    var = data["S"] / data["rho"] / 3
+    return var
 
 def _rPsi4(field, data):
     cntarg = np.argmin(data["lapse"].d)
@@ -71,7 +64,7 @@ def _rPsi4(field, data):
     return rad * data["Weyl4_Re"]
 
 def _deltarho(field, data):
-	rho = data["rho"].d
-	mean = (data["K"].d)**2
-	return rho/mean/24/np.pi
+    rho = data["rho"].d
+    mean = (data["K"].d)**2
+    return rho/mean/24/np.pi
 
