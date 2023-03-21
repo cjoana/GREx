@@ -23,6 +23,8 @@ print(FILEPATH)
 from analysis_functions import load_dataset
 import analysis_functions as af 
 
+verbose = 3
+
 # dsets_path = '/public/home/cjoana/outpbh/{exp}/hdf5/'
 # h5_filename = './data/{exp}_test.hdf5'
 dir_dsets_path = '/Volumes/Expansion/data/{exp}/hdf5/'
@@ -52,61 +54,115 @@ lst_simdata = [
     #
 ]
 
+  #   (x, y z) of @lapsemin and @lapsemax
+
+struct_simdata = [[], [], [], [], [], []]  #  var = [ mean, std, min, max, @lapsemin, @lapsemax ]
+struct_metadata = []
 lst_metadata = [
     'time',  'Vol', 'dset',
+    "x_lapsemin",  "y_lapsemin",  "z_lapsemin", 
+    "x_lapsemax",  "y_lapsemax",  "z_lapsemax", 
 ]
 
 
-
 for exp in exps:
-    print('Initiating collection of ', exp) 
+    if verbose > 1 : print('Initiating collection of ', exp) 
 
     # prepare h5 sumary
     h5_fn = h5_filename.format(exp=exp)
     if recompute: 
         if not os.path.exists(h5_filepath): os.mkdir(h5_filepath)
         out = h5py.File(h5_fn, "w")
-        print('Creating h5-analysis ', h5_fn)
+        if verbose > 1 : print('Creating h5-analysis ', h5_fn)
         simdata = out.create_group("simulated_data")
         for item in lst_simdata:
-            simdata.create_dataset(item[0], data=[[], [], [], []], maxshape=(None, None,))
+            simdata.create_dataset(item[0], data=struct_simdata, maxshape=(None, None,))
         metadata = out.create_group("metadata")
         for item in lst_metadata:
             _dtype = int if item=="dset" else None
-            simdata.create_dataset(item, data=[], maxshape=(None,), dtype=_dtype)
+            simdata.create_dataset(item, data=struct_metadata, maxshape=(None,), dtype=_dtype)
         out.close()
-        print('Creating h5-analysis ', h5_fn, "  DONE. ")
+        if verbose > 2 : print('Creating h5-analysis ', h5_fn, "  DONE. ")
         
         
-
-
 
     # Load data
 
-    i_dset = 1000
-    
-    print("Loading simulated data ")    
+    i_dset = 1000   
+    if verbose > 1 : print("Loading simulated data ")    
     ds = load_dataset(num=i_dset, exp=exp)    
+
+
 
 
 
     # Read & extract Sim data
 
     reg = ds.r[:]
+
+    ## METADATA
+
     vol_cell = np.ndarray.flatten(reg['volcell'])
     vol = np.sum(vol_cell)*1.0
+    weights = vol_cell / vol
+    L = vol ** (1 / 3)
+    time = ds.current_time
+   
+    m_dict = dict()
+    m_dict['vol'] = vol 
+    m_dict['L'] = L
+    m_dict['time'] = time
     print(f"Volume of box is {vol.d},  effective L = {vol.d **(1/3)}")
+
+    ## Find coordinates 
+    vlap = np.ndarray.flatten(reg["lapse"])
+    arglapmin = np.argmin(vlap)
+    arglapmax = np.argmax(vlap)
+    if len(arglapmin)>1: arglapmin=arglapmin[0]
+    if len(arglapmax)>1: arglapmax=arglapmax[0]
     
+    xfd = np.ndarray.flatten(reg["x"])
+    yfd = np.ndarray.flatten(reg["y"])
+    zfd = np.ndarray.flatten(reg["z"])
     
-    # Save data
-    
-    
+    m_dict['x_lapsemin'] = xfd[arglapmin]
+    m_dict['y_lapsemin'] = yfd[arglapmin]
+    m_dict['z_lapsemin'] = zfd[arglapmin]
+    m_dict['x_lapsemax'] = xfd[arglapmax]
+    m_dict['y_lapsemax'] = yfd[arglapmax]
+    m_dict['z_lapsemax'] = zfd[arglapmax]
+
+    # Save metada
+    out = h5py.File(h5_fn, "r+")
+    for var in lst_metadata:
+        metavar = out["metadata"][var]
+        metavar.resize( (metavar.size[0] + 1), axis = 0)
+        metavar[-1] = m_dict[var]
+    out.close()
 
 
-    # load BH data
+    ## SIM DATA
+    #  Structure:   var : [ mean, std, min, max, @lapsemin, @lapsemax ]    
+    for var, weighted in lst_simdata:
+        fd = np.ndarray.flatten(reg[var])
+        if not weighted:
+            w = np.ones_like(weights)
+        elif weighted == 'all':
+            w = weights 
+        else:
+            raise(f"weights not defined, {weighted} ?")			
+        avg = np.average(fd, weights=w)
+        std = np.sqrt(np.cov(fd, aweights=w))
+        vmin, vmax = [np.min(fd), np.max(fd)]
+        vals = [avg, std, vmin, vmax, fd[arglapmin], fd[arglapmax]]
+        nvs = len(vals)
 
+        out = h5py.File(h5_fn, "r+")
+        datavar = out["simulated_data"][var]
+        datavar.resize( (metavar.size[0] + nvs), axis = 0)
+        datavar[:-nvs] = vals
+        out.close()
+        
+        if verbose >2: print(f"  > Collected {var} from {exp}.")
 
-    ##  lapse, rho, trA2, ricci_scalar, N,  K, S, W, omega, Ham, Ham_abs_terms, Mom, Mom_abs_terms
-    ##  delta_rho, 
-    ##  Volume,
-    ##                          __>>  mean, std, min, max, "center = minlapse"
+    if verbose >1 : print(f"Collecting data from {exp} is DONE.")
