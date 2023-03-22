@@ -25,11 +25,12 @@ import analysis_functions as af
 
 verbose = 3
 
-# dsets_path = '/public/home/cjoana/outpbh/{exp}/hdf5/'
-# h5_filename = './data/{exp}_test.hdf5'
-dir_dsets_path = '/Volumes/Expansion/data/{exp}/hdf5/'
+
 h5_filepath =  FILEPATH + '/h5_data/'
-h5_filename = h5_filepath + '{exp}_test.hdf5'
+dir_dsets_path = '/public/home/cjoana/outpbh/{exp}/hdf5/'
+h5_filename = './data/{exp}_test.hdf5'
+#dir_dsets_path = '/Volumes/Expansion/data/{exp}/hdf5/'
+#h5_filename = h5_filepath + '{exp}_test.hdf5'
 
 prefx = "run1p_"  
 exps = ["asym04", ]
@@ -50,14 +51,14 @@ lst_simdata = [
     ['omega', 'all'],
     ['W', 'all'],
     ['lapse', 'all'],
-    ['delta_rho', 'all'],
+    ['deltarho', 'all'],
     #
 ]
 
   #   (x, y z) of @lapsemin and @lapsemax
 
 struct_simdata = [[], [], [], [], [], []]  #  var = [ mean, std, min, max, @lapsemin, @lapsemax ]
-struct_metadata = []
+struct_metadata =[]
 lst_metadata = [
     'time',  'Vol', 'dset',
     "x_lapsemin",  "y_lapsemin",  "z_lapsemin", 
@@ -80,7 +81,7 @@ for exp in exps:
         metadata = out.create_group("metadata")
         for item in lst_metadata:
             _dtype = int if item=="dset" else None
-            simdata.create_dataset(item, data=struct_metadata, maxshape=(None,), dtype=_dtype)
+            metadata.create_dataset(item, data=struct_metadata, maxshape=(None,), dtype=_dtype)
         out.close()
         if verbose > 2 : print('Creating h5-analysis ', h5_fn, "  DONE. ")
         
@@ -109,8 +110,9 @@ for exp in exps:
     time = ds.current_time
    
     m_dict = dict()
-    m_dict['vol'] = vol 
+    m_dict['Vol'] = vol 
     m_dict['L'] = L
+    m_dict['dset'] = i_dset
     m_dict['time'] = time
     print(f"Volume of box is {vol.d},  effective L = {vol.d **(1/3)}")
 
@@ -118,8 +120,8 @@ for exp in exps:
     vlap = np.ndarray.flatten(reg["lapse"])
     arglapmin = np.argmin(vlap)
     arglapmax = np.argmax(vlap)
-    if len(arglapmin)>1: arglapmin=arglapmin[0]
-    if len(arglapmax)>1: arglapmax=arglapmax[0]
+    if isinstance(arglapmin, list): arglapmin=arglapmin[0]
+    if isinstance(arglapmax, list): arglapmax=arglapmax[0]
     
     xfd = np.ndarray.flatten(reg["x"])
     yfd = np.ndarray.flatten(reg["y"])
@@ -136,7 +138,7 @@ for exp in exps:
     out = h5py.File(h5_fn, "r+")
     for var in lst_metadata:
         metavar = out["metadata"][var]
-        metavar.resize( (metavar.size[0] + 1), axis = 0)
+        metavar.resize( (metavar.shape[0] + 1), axis = 0)
         metavar[-1] = m_dict[var]
     out.close()
 
@@ -159,7 +161,7 @@ for exp in exps:
 
         out = h5py.File(h5_fn, "r+")
         datavar = out["simulated_data"][var]
-        datavar.resize( (metavar.size[0] + nvs), axis = 0)
+        datavar.resize( (datavar.shape[0] + nvs), axis = 0)
         datavar[:-nvs] = vals
         out.close()
         

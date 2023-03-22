@@ -6,6 +6,17 @@
 import numpy as np
 import yt 
 
+import sys, os
+# FILEPATH = os.getcwd()  #  gives *working-directory* which is not necess. the path of file. 
+FILEPATH = os.path.dirname(os.path.realpath(__file__))   # os.path.realpath(__file__)[:-21]
+sys.path.append(FILEPATH)
+print(FILEPATH)
+
+h5_filepath =  FILEPATH + '/h5_data/'
+dir_dsets_path = '/public/home/cjoana/outpbh/{exp}/hdf5/'
+
+prefx = "run1p_"
+exps = ["asym04", ]
 
 ############################################## functions
 
@@ -39,8 +50,12 @@ def _add_fields(ds):
     ds.add_field(('chombo', 'volcell'), function=_volcell, # units="l_pl**3", 
                 take_log=False, sampling_type="local",  display_name='volcell')
     ds.add_field(('chombo', 'N'), function=_N, # units="", 
-                sampling_type="local", take_log=False, display_name='N')
-    
+                sampling_type="local", take_log=False, display_name='N') 
+    ds.add_field(('chombo', 'omega'), function=_omega, # units="", 
+                sampling_type="local", take_log=False, display_name='omega')
+    ds.add_field(('chombo', 'deltarho'), function=_deltarho, # units="", 
+                sampling_type="local", take_log=False, display_name='deltarho')
+  
     return ds
 
 def _N(field, data):
