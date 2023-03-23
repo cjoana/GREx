@@ -23,7 +23,7 @@ print(FILEPATH)
 from analysis_functions import load_dataset, get_prefixes_in_files, get_files_in_path, get_ids_dsets_in_filelist
 import analysis_functions as af 
 
-verbose = 3
+verbose = 1
 
 h5_filepath =  FILEPATH + '/h5_data/'
 
@@ -97,7 +97,7 @@ for exp in exps:
             continue
         prefix = prefixes[0]    
     lst_dsets = get_ids_dsets_in_filelist(files, prefix=prefix)
-    
+    lst_dsets = np.sort(lst_dsets)
 
     #TODO: reduce dataset with only not existen ones. (refill only)
     if not recompute:
@@ -124,7 +124,7 @@ for exp in exps:
         m_dict['L'] = L
         m_dict['dset'] = id_dset
         m_dict['time'] = time
-        if verbose > 2: print(f"Volume of box is {vol.d},  effective L = {vol.d **(1/3)}")
+        if verbose>2: print(f"Volume of box is {vol.d},  effective L = {vol.d **(1/3)}")
 
         ## Find coordinates 
         vlap = np.ndarray.flatten(reg["lapse"])

@@ -67,8 +67,8 @@ def _add_fields(ds):
                 take_log=False, sampling_type="local",  display_name='volcell')
     ds.add_field(('chombo', 'N'), function=_N, # units="", 
                 sampling_type="local", take_log=False, display_name='N') 
-    ds.add_field(('chombo', 'rPsi4'), function=_rPsi4, # units="", 
-                sampling_type="local", take_log=False, display_name='rPsi4')
+    #ds.add_field(('chombo', 'rPsi4'), function=_rPsi4, # units="", 
+    #            sampling_type="local", take_log=False, display_name='rPsi4')
   
     return ds
 
@@ -84,7 +84,8 @@ def _omega(field, data):
     return var
 
 def _rPsi4(field, data):
-    cntarg = np.argmin(data["lapse"].d)
+    # TODO does not work ,  cntarg out of bounds
+    #cntarg = np.argmin(data["lapse"].d)
     # cnt = [30, 30, 30]
     xx = data["x"].d -  data["x"][cntarg].d
     yy = data["y"].d -  data["x"][cntarg].d

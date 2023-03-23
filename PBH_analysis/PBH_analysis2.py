@@ -26,7 +26,7 @@ print(FILEPATH)
 from ahfinder_functions import load_dataset, get_prefixes_in_files, get_files_in_path, get_ids_dsets_in_filelist
 import ahfinder_functions as af 
 
-verbose = 3
+verbose = 1
 
 h5_filepath =  FILEPATH + '/h5_data/'
 
@@ -64,7 +64,7 @@ lst_metadata = [
 selcord = [20, 10]
 
 struct_ahdata = []
-lst_ahdata = [ 'time', 'dset', 'mass', 'spin', 'spin_x', 'spin_y', 'spin_y', 'center_x', 'center_y', 'center_x' ]
+lst_ahdata = [ 'time', 'dset', 'mass', 'spin', 'spin_x', 'spin_y', 'spin_z', 'center_x', 'center_y', 'center_z', ]
 ind_ahdata = [ 0, 1, 4, 5, 6, 7, 8, -3, -2, -1]
 
 
@@ -99,12 +99,12 @@ for exp in exps:
     files = get_files_in_path(dirpath)
     if not prefix: 
         prefixes = get_prefixes_in_files(files)
-        if len(prefixes)>1 : 
-            print(f" !!! SKIP exp {exp} because too many prefixes (e.g. {prefixes})")
+        if len(prefixes)!=1 : 
+            print(f" !!! SKIP exp {exp} because none/too-many prefixes (e.g. {prefixes})")
             continue
         prefix = prefixes[0]    
     lst_dsets = get_ids_dsets_in_filelist(files, prefix=prefix)
-    
+    lst_dsets = np.sort(lst_dsets)
 
     #TODO: reduce dataset with only not existen ones. (refill only)
     if not recompute:
@@ -119,8 +119,9 @@ for exp in exps:
         out = h5py.File(h5_fn, "r+")
         for iv, var in enumerate(lst_ahdata):
             ahvar = out["ahdata1"][var]
-            ahvar.resize( (ahvar.shape[0] + 1), axis = 0)
-            ahvar[-1] = dat[:, ind_ahdata[iv]]
+            ln= len(dat[:,ind_ahdata[iv]] )
+            ahvar.resize( (ahvar.shape[0] + ln), axis = 0)
+            ahvar[:-ln] = dat[:, ind_ahdata[iv]]
         out.close()      
     f2 = ah_dir_path + "stats_AH2.dat"
     if os.path.exists(f2):
@@ -128,8 +129,9 @@ for exp in exps:
         out = h5py.File(h5_fn, "r+")
         for iv, var in enumerate(lst_ahdata):
             ahvar = out["ahdata2"][var]
-            ahvar.resize( (ahvar.shape[0] + 1), axis = 0)
-            ahvar[-1] = dat[:, ind_ahdata[iv]]
+            ln= len(dat[:,ind_ahdata[iv]] )
+            ahvar.resize( (ahvar.shape[0] + ln), axis = 0)
+            ahvar[:-ln] = dat[:, ind_ahdata[iv]]
         out.close()   
 
     # Loop through datasets and extract data
@@ -153,7 +155,7 @@ for exp in exps:
         m_dict['L'] = L
         m_dict['dset'] = id_dset
         m_dict['time'] = time
-        if verbose > 2: print(f"Volume of box is {vol.d},  effective L = {vol.d **(1/3)}")
+        if verbose>2: print(f"Volume of box is {vol.d},  effective L = {vol.d **(1/3)}")
 
         ## Find coordinates 
         # vlap = np.ndarray.flatten(reg["lapse"])

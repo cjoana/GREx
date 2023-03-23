@@ -14,11 +14,11 @@ FILEPATH = os.path.dirname(os.path.realpath(__file__))   # os.path.realpath(__fi
 sys.path.append(FILEPATH)
 print(FILEPATH)
 
-# h5_filepath =  FILEPATH + '/h5_data/'
-# dir_dsets_path = '/public/home/cjoana/outpbh/{exp}/hdf5/'
-# h5_filename = './data/{exp}_summary.hdf5'
-# dir_dsets_path = '/Volumes/Expansion/data/{exp}/hdf5/'
-# h5_filename = h5_filepath + '{exp}_test.hdf5'
+h5_filepath =  FILEPATH + '/h5_data/'
+dir_dsets_path = '/public/home/cjoana/outpbh/{exp}/hdf5/'
+
+prefx = "run1p_"
+exps = ["asym04", ]
 
 ############################################## functions
 
