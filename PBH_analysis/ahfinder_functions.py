@@ -15,10 +15,14 @@ sys.path.append(FILEPATH)
 print(FILEPATH)
 
 # h5_filepath =  FILEPATH + '/h5_data/'
-# dir_dsets_path = '/public/home/cjoana/outpbh/{exp}/hdf5/'
-# h5_filename = './data/{exp}_summary.hdf5'
-# dir_dsets_path = '/Volumes/Expansion/data/{exp}/hdf5/'
+
+# dir_dsets_path = '/public/home/cjoana/outpbh/{exp}/hdf5AH/'
+# h5_filename = './data/{exp}_ahfinder.hdf5'
+# ahdata_path = '/public/home/cjoana/outpbh/{exp}/data_PP/'
+# dir_dsets_path = '/Volumes/Expansion/data/{exp}/hdf5AH/'
 # h5_filename = h5_filepath + '{exp}_test.hdf5'
+# ahdata_path = '/Volumes/Expansion/data/{exp}/data_PP/'
+
 
 ############################################## functions
 
@@ -63,10 +67,8 @@ def _add_fields(ds):
                 take_log=False, sampling_type="local",  display_name='volcell')
     ds.add_field(('chombo', 'N'), function=_N, # units="", 
                 sampling_type="local", take_log=False, display_name='N') 
-    ds.add_field(('chombo', 'omega'), function=_omega, # units="", 
-                sampling_type="local", take_log=False, display_name='omega')
-    ds.add_field(('chombo', 'deltarho'), function=_deltarho, # units="", 
-                sampling_type="local", take_log=False, display_name='deltarho')
+    ds.add_field(('chombo', 'rPsi4'), function=_rPsi4, # units="", 
+                sampling_type="local", take_log=False, display_name='rPsi4')
   
     return ds
 
