@@ -17,8 +17,8 @@ print(FILEPATH)
 h5_filepath =  FILEPATH + '/h5_data/'
 dir_dsets_path = '/public/home/cjoana/outpbh/{exp}/hdf5/'
 
-prefx = "run1p_"
-exps = ["asym04", ]
+#prefx = "run1p_"
+#exps = ["asym04", ]
 
 ############################################## functions
 

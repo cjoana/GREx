@@ -33,7 +33,7 @@ def get_files_in_path(path, extension ="*.hdf5"):
 
 def get_prefixes_in_files(file_list):
     fs = file_list
-    re_plotfile = 'run\d+p_'
+    re_plotfile = 'AH\d+p_'
     prefixes =  np.unique(np.hstack([re.findall(re_plotfile, f)  for f in fs ]))
     return prefixes
 
@@ -54,6 +54,25 @@ def load_dataset(dirpath, prefix, id_dset):
     ds = _add_fields(ds)
     return ds
 
+def find_argcord(ds, coord):
+    reg = ds.r[:]
+    X , Y, Z = [reg['x'], reg['y'] , reg['z'] ]
+    rad2 = X**2 + Y**2 + Z**2
+    mask = (X>=coord[0]) * (Y>=coord[1]) * (Z>=coord[2])
+    warg = np.where(mask)[0]
+    iarg = np.argmin(rad2[warg])
+    arg = warg[iarg]
+    return arg
+
+def _find_argcord_data(data, coord):
+    reg = data
+    X , Y, Z = [reg['x'], reg['y'] , reg['z'] ]
+    rad2 = X**2 + Y**2 + Z**2
+    mask = (X>=coord[0]) * (Y>=coord[1]) * (Z>=coord[2])
+    warg = np.where(mask)[0]
+    iarg = np.argmin(rad2[warg])
+    arg = warg[iarg]
+    return arg
 
 units_override = {"length_unit": (1.0, "l_pl"),
                   "time_unit": (1.0, "t_pl"),

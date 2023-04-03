@@ -23,7 +23,7 @@ print(FILEPATH)
 from analysis_functions import load_dataset, get_prefixes_in_files, get_files_in_path, get_ids_dsets_in_filelist
 import analysis_functions as af 
 
-verbose = 1
+verbose = 2
 
 h5_filepath =  FILEPATH + '/h5_data/'
 
@@ -33,7 +33,12 @@ h5_filename = './data/{exp}_summary.hdf5'
 # h5_filename = h5_filepath + '{exp}_test.hdf5'
 
 prefix = None #  "runXXX"  ,  None =  found automatically if uniquely. 
-exps = ["asym01","asym02","asym03", "asym04", "pancake", "pancake02" ]
+exps = [
+    # "asym01",
+    #"asym02","asym03", "asym04",
+     "pancake", 
+    #"pancake02",
+    ]
 recompute = True
 
 ############################################  Set vars 
@@ -64,7 +69,6 @@ lst_metadata = [
     "x_lapsemin",  "y_lapsemin",  "z_lapsemin", 
     "x_lapsemax",  "y_lapsemax",  "z_lapsemax", 
 ]
-
 
 for exp in exps:
     if verbose > 1 : print('Initiating collection of ', exp) 
@@ -106,8 +110,9 @@ for exp in exps:
 
     # Loop through datasets and extract data
     if verbose > 1 : print("Loading simulated data ")    
-    for id_dset in lst_dsets:
-    
+    for idd, id_dset in enumerate(lst_dsets):
+        #if idd > 2:  break
+
         # Load data
         ds = load_dataset(dirpath, prefix, id_dset)    
         reg = ds.r[:]
@@ -167,12 +172,13 @@ for exp in exps:
             std = np.sqrt(np.cov(fd, aweights=w))
             vmin, vmax = [np.min(fd), np.max(fd)]
             vals = [avg, std, vmin, vmax, fd[arglapmin], fd[arglapmax]]
-            nvs = len(vals)
+            #nvs = len(vals)
 
             out = h5py.File(h5_fn, "r+")
             datavar = out["simulated_data"][var]
-            datavar.resize( (datavar.shape[0] + nvs), axis = 0)
-            datavar[:-nvs] = vals
+            m, n = datavar.shape
+            datavar.resize((m , n +1))
+            datavar[:,-1] = vals
             out.close()
             
             if verbose >2: print(f"  > Collected {var} from {exp}.")
