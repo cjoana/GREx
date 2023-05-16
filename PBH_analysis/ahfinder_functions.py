@@ -33,7 +33,7 @@ def get_files_in_path(path, extension ="*.hdf5"):
 
 def get_prefixes_in_files(file_list):
     fs = file_list
-    re_plotfile = 'run\d+p_'
+    re_plotfile = 'AH\d+p_'
     prefixes =  np.unique(np.hstack([re.findall(re_plotfile, f)  for f in fs ]))
     return prefixes
 
@@ -54,6 +54,25 @@ def load_dataset(dirpath, prefix, id_dset):
     ds = _add_fields(ds)
     return ds
 
+def find_argcord(ds, coord):
+    reg = ds.r[:]
+    X , Y, Z = [reg['x'], reg['y'] , reg['z'] ]
+    rad2 = X**2 + Y**2 + Z**2
+    mask = (X>=coord[0]) * (Y>=coord[1]) * (Z>=coord[2])
+    warg = np.where(mask)[0]
+    iarg = np.argmin(rad2[warg])
+    arg = warg[iarg]
+    return arg
+
+def _find_argcord_data(data, coord):
+    reg = data
+    X , Y, Z = [reg['x'], reg['y'] , reg['z'] ]
+    rad2 = X**2 + Y**2 + Z**2
+    mask = (X>=coord[0]) * (Y>=coord[1]) * (Z>=coord[2])
+    warg = np.where(mask)[0]
+    iarg = np.argmin(rad2[warg])
+    arg = warg[iarg]
+    return arg
 
 units_override = {"length_unit": (1.0, "l_pl"),
                   "time_unit": (1.0, "t_pl"),
@@ -67,8 +86,8 @@ def _add_fields(ds):
                 take_log=False, sampling_type="local",  display_name='volcell')
     ds.add_field(('chombo', 'N'), function=_N, # units="", 
                 sampling_type="local", take_log=False, display_name='N') 
-    ds.add_field(('chombo', 'rPsi4'), function=_rPsi4, # units="", 
-                sampling_type="local", take_log=False, display_name='rPsi4')
+    #ds.add_field(('chombo', 'rPsi4'), function=_rPsi4, # units="", 
+    #            sampling_type="local", take_log=False, display_name='rPsi4')
   
     return ds
 
@@ -84,7 +103,8 @@ def _omega(field, data):
     return var
 
 def _rPsi4(field, data):
-    cntarg = np.argmin(data["lapse"].d)
+    # TODO does not work ,  cntarg out of bounds
+    #cntarg = np.argmin(data["lapse"].d)
     # cnt = [30, 30, 30]
     xx = data["x"].d -  data["x"][cntarg].d
     yy = data["y"].d -  data["x"][cntarg].d

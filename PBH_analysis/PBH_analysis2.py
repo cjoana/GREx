@@ -23,10 +23,11 @@ FILEPATH = os.path.dirname(os.path.realpath(__file__))   # os.path.realpath(__fi
 sys.path.append(FILEPATH)
 print(FILEPATH)
 
-from ahfinder_functions import load_dataset, get_prefixes_in_files, get_files_in_path, get_ids_dsets_in_filelist
+from ahfinder_functions import load_dataset, get_prefixes_in_files, \
+			 get_files_in_path, get_ids_dsets_in_filelist, find_argcord
 import ahfinder_functions as af 
 
-verbose = 3
+verbose = 2
 
 h5_filepath =  FILEPATH + '/h5_data/'
 
@@ -38,7 +39,8 @@ ahdata_path = '/public/home/cjoana/outpbh/{exp}/data_PP/'
 # ahdata_path = '/Volumes/Expansion/data/{exp}/data_PP/'
 
 prefix = None #  "runXXX"  ,  None =  found automatically if uniquely. 
-exps = ["asym01","asym02","asym03", "asym04", "pancake", "pancake02" ]
+#exps = ["asym01","asym02","asym03", "asym04", "pancake", "pancake02" ]
+exps = [ "pancake" ]
 recompute = True
 
 ############################################  Set vars 
@@ -61,14 +63,17 @@ lst_metadata = [
 #    "x_020",  "y_020",  "z_020",      # TODO Change
 #    "x_010",  "y_010",  "z_010", 
 ]
-selcord = [20, 10]
+selcord = [[20,20,20],
+           [10,10,10], 
+]
 
 struct_ahdata = []
-lst_ahdata = [ 'time', 'dset', 'mass', 'spin', 'spin_x', 'spin_y', 'spin_y', 'center_x', 'center_y', 'center_x' ]
+lst_ahdata = [ 'time', 'dset', 'mass', 'spin', 'spin_x', 'spin_y', 'spin_z', 'center_x', 'center_y', 'center_z', ]
 ind_ahdata = [ 0, 1, 4, 5, 6, 7, 8, -3, -2, -1]
 
 
-for exp in exps:
+for i_exp, exp in enumerate(exps):
+    #if i_exp > 0 : break
     if verbose > 1 : print('Initiating collection of ', exp) 
 
     # prepare h5 sumary
@@ -99,12 +104,12 @@ for exp in exps:
     files = get_files_in_path(dirpath)
     if not prefix: 
         prefixes = get_prefixes_in_files(files)
-        if len(prefixes)>1 : 
-            print(f" !!! SKIP exp {exp} because too many prefixes (e.g. {prefixes})")
+        if len(prefixes)!=1 : 
+            print(f" !!! SKIP exp {exp} because none/too-many prefixes (e.g. {prefixes})")
             continue
         prefix = prefixes[0]    
     lst_dsets = get_ids_dsets_in_filelist(files, prefix=prefix)
-    
+    lst_dsets = np.sort(lst_dsets)
 
     #TODO: reduce dataset with only not existen ones. (refill only)
     if not recompute:
@@ -116,30 +121,34 @@ for exp in exps:
     f1 = ah_dir_path + "stats_AH1.dat"
     if os.path.exists(f1):
         dat = np.loadtxt(f1)
-        out = h5py.File(h5_fn, "r+")
-        for iv, var in enumerate(lst_ahdata):
-            ahvar = out["ahdata1"][var]
-            ahvar.resize( (ahvar.shape[0] + 1), axis = 0)
-            ahvar[-1] = dat[:, ind_ahdata[iv]]
-        out.close()      
+        if dat.ndim > 2 :
+            out = h5py.File(h5_fn, "r+")
+            for iv, var in enumerate(lst_ahdata):
+                ahvar = out["ahdata1"][var]
+                ln= len(dat[:,ind_ahdata[iv]] )
+                ahvar.resize( (ahvar.shape[0] + ln), axis = 0)
+                ahvar[-ln:] = dat[:, ind_ahdata[iv]]
+            out.close()      
     f2 = ah_dir_path + "stats_AH2.dat"
     if os.path.exists(f2):
         dat = np.loadtxt(f2)
-        out = h5py.File(h5_fn, "r+")
-        for iv, var in enumerate(lst_ahdata):
-            ahvar = out["ahdata2"][var]
-            ahvar.resize( (ahvar.shape[0] + 1), axis = 0)
-            ahvar[-1] = dat[:, ind_ahdata[iv]]
-        out.close()   
+        if dat.ndim > 2 : 
+            out = h5py.File(h5_fn, "r+")
+            for iv, var in enumerate(lst_ahdata):
+                ahvar = out["ahdata2"][var]
+                ln= len(dat[:,ind_ahdata[iv]] )
+                ahvar.resize( (ahvar.shape[0] + ln), axis = 0)
+                ahvar[-ln:] = dat[:, ind_ahdata[iv]]
+            out.close()   
 
     # Loop through datasets and extract data
     if verbose > 1 : print("Loading simulated data ")    
-    for id_dset in lst_dsets:
-    
+    for idd, id_dset in enumerate(lst_dsets):
+        #if idd>0 : break
+ 
         # Load data
         ds = load_dataset(dirpath, prefix, id_dset)    
         reg = ds.r[:]
-        reg3d = ds.r[:,:,:]
 
         ## METADATA
         vol_cell = np.ndarray.flatten(reg['volcell'])
@@ -153,7 +162,7 @@ for exp in exps:
         m_dict['L'] = L
         m_dict['dset'] = id_dset
         m_dict['time'] = time
-        if verbose > 2: print(f"Volume of box is {vol.d},  effective L = {vol.d **(1/3)}")
+        if verbose>2: print(f"Volume of box is {vol.d},  effective L = {vol.d **(1/3)}")
 
         ## Find coordinates 
         # vlap = np.ndarray.flatten(reg["lapse"])
@@ -181,12 +190,15 @@ for exp in exps:
             metavar[-1] = m_dict[var]
         out.close()
 
+        # coordinates and args
+        c1, c2 = selcord 
+        ac1 = find_argcord(ds, c1)
+        ac2 = find_argcord(ds, c2)
 
         ## SIM DATA
         #  Structure:   var : [ mean, std, min, max, @lapsemin, @lapsemax ]    
         for var, weighted in lst_simdata:
             fd = np.ndarray.flatten(reg[var])
-            fd3 = reg[var]
             if not weighted:
                 w = np.ones_like(weights)
             elif weighted == 'all':
@@ -196,14 +208,13 @@ for exp in exps:
             avg = np.average(fd, weights=w)
             std = np.sqrt(np.cov(fd, aweights=w))
             vmin, vmax = [np.min(fd), np.max(fd)]
-            c1, c2 = selcord
-            vals = [avg, std, vmin, vmax, fd3[c1,c1,c1], fd3[c2,c2,c2]]
-            nvs = len(vals)
+            vals = [avg, std, vmin, vmax, fd[ac1], fd[ac2]]
 
             out = h5py.File(h5_fn, "r+")
             datavar = out["simulated_data"][var]
-            datavar.resize( (datavar.shape[0] + nvs), axis = 0)
-            datavar[:-nvs] = vals
+            m, n = datavar.shape
+            datavar.resize((m , n +1))
+            datavar[:,-1] = vals
             out.close()
             
             if verbose >2: print(f"  > Collected {var} from {exp}.")

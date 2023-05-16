@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../git"
+		},
+		{
+			"path": "../../../Documents/Projects"
+		}
+	],
+    "settings": {
+        "files.associations": {
+            "*.tcc": "cpp",
+            "istream": "cpp"
+        }
+    }
+}
