@@ -12,6 +12,12 @@ from source.logderivatives import *
 from source.tensoralgebra import *
 from source.mymatter import *
 from source.bssnrhs import *
+
+
+import multiprocessing
+pool = multiprocessing.Pool(100)
+# from multiprocessing.pool import ThreadPool as Pool
+# pool = Pool(100)
     
 # function that returns the rhs for each of the field vars
 # see further details in https://github.com/GRChombo/engrenage/wiki/Useful-code-background
@@ -214,6 +220,10 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, eta, progress_bar, tim
 
     def parallel_rhs(ix): 
         
+        f = open(f"rhs_u_{ix}.txt","w")
+        f.close()
+
+        
         #t0A = time.time()
         
         # where am I?
@@ -375,18 +385,8 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, eta, progress_bar, tim
 
         # t5A = time.time()
         # print("Advection done in ", t5A - t4A)
-        
-        return ix, rhs_u_ix, rhs_v_ix, rhs_phi_ix, rhs_hrr_ix, rhs_htt_ix, rhs_hpp_ix, \
-                       rhs_K_ix, rhs_arr_ix, rhs_att_ix, rhs_app_ix, rhs_lambdar_ix, rhs_shiftr_ix, \
-                                                                      rhs_br_ix, rhs_lapse_ix
 
-    import multiprocessing
-    pool = multiprocessing.Pool(100)
 
-    for  ix, rhs_u_ix, rhs_v_ix, rhs_phi_ix, rhs_hrr_ix, rhs_htt_ix, rhs_hpp_ix, \
-                       rhs_K_ix, rhs_arr_ix, rhs_att_ix, rhs_app_ix, rhs_lambdar_ix, rhs_shiftr_ix, \
-                       rhs_br_ix, rhs_lapse_ix  in pool.map(parallel_rhs, range(num_ghosts, N-num_ghosts)) :
-        
         rhs_u[ix]   = rhs_u_ix
         rhs_v[ix]   = rhs_v_ix
         rhs_phi[ix]  = rhs_phi_ix
@@ -401,8 +401,33 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, eta, progress_bar, tim
         rhs_shiftr[ix]   = rhs_shiftr_ix
         rhs_br[ix]      = rhs_br_ix
         rhs_lapse[ix]    = rhs_lapse_ix
-        
 
+           
+        
+        return ix, rhs_u_ix, rhs_v_ix, rhs_phi_ix, rhs_hrr_ix, rhs_htt_ix, rhs_hpp_ix, \
+                       rhs_K_ix, rhs_arr_ix, rhs_att_ix, rhs_app_ix, rhs_lambdar_ix, rhs_shiftr_ix, \
+                                                                      rhs_br_ix, rhs_lapse_ix
+
+
+
+    for   ix, rhs_u_ix, rhs_v_ix, rhs_phi_ix, rhs_hrr_ix, rhs_htt_ix, rhs_hpp_ix, \
+                        rhs_K_ix, rhs_arr_ix, rhs_att_ix, rhs_app_ix, rhs_lambdar_ix, rhs_shiftr_ix, \
+                        rhs_br_ix, rhs_lapse_ix  in map(parallel_rhs, range(num_ghosts, N-num_ghosts)):
+            
+            rhs_u[ix]   = rhs_u_ix
+            rhs_v[ix]   = rhs_v_ix
+            rhs_phi[ix]  = rhs_phi_ix
+            rhs_hrr[ix]  = rhs_hrr_ix
+            rhs_htt[ix]  = rhs_htt_ix
+            rhs_hpp[ix]  = rhs_hpp_ix
+            rhs_K[ix]    = rhs_K_ix
+            rhs_arr[ix]  = rhs_arr_ix
+            rhs_att[ix]  = rhs_att_ix
+            rhs_app[ix]  = rhs_app_ix    
+            rhs_lambdar[ix]  = rhs_lambdar_ix
+            rhs_shiftr[ix]   = rhs_shiftr_ix
+            rhs_br[ix]      = rhs_br_ix
+            rhs_lapse[ix]    = rhs_lapse_ix
 
            
     # end of rhs iteration over grid points   

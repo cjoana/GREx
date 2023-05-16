@@ -18,25 +18,17 @@ def timeit(func):
         return result
     return timeit_wrapper
 
-N = 3000
-npools = 100
-
-arr = np.zeros(N)
-
-
 
 def task(i):
     arr[i] = i +  2**i if i < 10 else i*10 
     print(f"\r {i}: {arr[i]}", end="", flush=True)
-    t = open("pybuff.txt", "a")
-    t.write(f"{i}: {arr[i]}\n")
-    t.close()
+    # t = open("pybuff.txt", "a")
+    # t.write(f"{i}: {arr[i]}\n")
+    # t.close()
     time.sleep(0.01)
     return i, arr[i]
 
-print(multiprocessing.cpu_count())
 
-pool = multiprocessing.Pool(npools)
 
 @timeit
 def parallel_map(rnge):
@@ -46,14 +38,6 @@ def parallel_map(rnge):
     print("\nDone, p-map") 
 
 
-parallel_map(range(N) )
-print(np.array(arr[:]))
-
-
-time.sleep(1)
-
-arr[:]= arr[:]*0
-
 @timeit
 def regular_loop(rnge):
     for x in rnge:
@@ -61,8 +45,27 @@ def regular_loop(rnge):
     print("\nDone")
 
 
-regular_loop(range(N) )
-print(np.array(arr[:]))
+
+
+
+if __name__ == '__main__':
+
+    N = 3000
+    npools = 100
+    arr = np.zeros(N)
+    pool = multiprocessing.Pool(npools)
+
+
+    parallel_map(range(N) )
+    print(np.array(arr[:]))
+
+
+    time.sleep(1)
+
+    arr[:]= arr[:]*0
+
+    regular_loop(range(N) )
+    print(np.array(arr[:]))
 
 
 
