@@ -21,6 +21,7 @@ from source.bssnrhs import *
 
 # parallelisation tools
 import multiprocessing as mp
+mp.set_start_method("fork")
 if not ('DefSimParams' in vars() or 'DefSimParams' in globals()):
     from source._simparams import * # N_r, R, r_is_logarithmic, eta
 #     # from examples.par_OscillatonEvo import N_r
@@ -123,8 +124,6 @@ sh_dlapsedx_advec_R   = mp.Array('d', N_r + 2*num_ghosts,lock=False) #
 def par_compute_determinant_h(ix):
 
     
-    print("in par func", sh_r[ix])
-
     # first the metric
     h = np.zeros_like(rank_2_spatial_tensor)
     h[i_r][i_r] = sh_hrr[ix]
@@ -333,8 +332,6 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, eta, progress_bar, tim
 
     for ix in range(N) :     
         sh_r[ix] = r[ix]
-
-        print(" in get_rhs",  sh_r[ix])
 
         sh_hrr[ix] = hrr[ix]
         sh_htt[ix] = htt[ix]

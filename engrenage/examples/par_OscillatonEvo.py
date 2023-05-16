@@ -19,7 +19,6 @@ from source._par_rhsevolution import *                   # go here to look at ho
 from source.oscillatoninitialconditions import *              # go here to change the initial conditions
 from source.hamdiagnostic import *  
 
-import multiprocessing as mp
 
 DefSimParams = True 
 # Input parameters for grid and evolution here
