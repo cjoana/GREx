@@ -26,8 +26,104 @@ if not ('DefSimParams' in vars() or 'DefSimParams' in globals()):
 #     # from examples.par_OscillatonEvo import N_r
 
 
+"""
+Shared Vars
+"""
+
+sh_hrr = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_htt = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_hpp = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_arr = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_att = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_app = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_r = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_phi = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_u = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_v = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_K = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_lapse = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_shiftr = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_br = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_lambdar = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+
+# RHS 
+rhs_hrr = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+rhs_htt = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+rhs_hpp = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+rhs_arr = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+rhs_att = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+rhs_app = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+rhs_r = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+rhs_phi = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+rhs_u = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+rhs_v = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+rhs_K = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+rhs_lapse = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+rhs_shiftr = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+rhs_br = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+rhs_lambdar = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+
+
+# Derivs
+# second derivatives
+sh_d2udx2     = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_d2phidx2   = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_d2hrrdx2   = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_d2httdx2   = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_d2hppdx2   = mp.Array('d', N_r + 2*num_ghosts,lock=False)    
+sh_d2lapsedx2   = mp.Array('d', N_r + 2*num_ghosts,lock=False) 
+sh_d2shiftrdx2   =mp.Array('d', N_r + 2*num_ghosts,lock=False) 
+# first derivatives        
+sh_dudx       = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dvdx       = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dphidx     = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dhrrdx     = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dhttdx     = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dhppdx     = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_darrdx     = mp.Array('d', N_r + 2*num_ghosts,lock=False) #
+sh_dattdx     = mp.Array('d', N_r + 2*num_ghosts,lock=False) #
+sh_dappdx     = mp.Array('d', N_r + 2*num_ghosts,lock=False) #
+sh_dKdx       = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dlambdardx = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dbrdx    = mp.Array('d', N_r + 2*num_ghosts,lock=False)   # 
+sh_dshiftrdx  = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dlapsedx   = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+# first derivatives - advec left and right
+sh_dudx_advec_L       = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dvdx_advec_L       = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dphidx_advec_L     = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dhrrdx_advec_L     = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dhttdx_advec_L     = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dhppdx_advec_L     = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_darrdx_advec_L     = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dattdx_advec_L     = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dappdx_advec_L     = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dKdx_advec_L       = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dlambdardx_advec_L = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dshiftrdx_advec_L  = mp.Array('d', N_r + 2*num_ghosts,lock=False) #
+sh_dbrdx_advec_L      = mp.Array('d', N_r + 2*num_ghosts,lock=False) #
+sh_dlapsedx_advec_L   = mp.Array('d', N_r + 2*num_ghosts,lock=False) #
+sh_dudx_advec_R         = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dvdx_advec_R         = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dphidx_advec_R       = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dhrrdx_advec_R       = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dhttdx_advec_R       = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dhppdx_advec_R       = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_darrdx_advec_R       = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dattdx_advec_R       = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dappdx_advec_R       = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dKdx_advec_R         = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dlambdardx_advec_R   = mp.Array('d', N_r + 2*num_ghosts,lock=False)
+sh_dshiftrdx_advec_R  = mp.Array('d', N_r + 2*num_ghosts,lock=False) #
+sh_dbrdx_advec_R      = mp.Array('d', N_r + 2*num_ghosts,lock=False) #
+sh_dlapsedx_advec_R   = mp.Array('d', N_r + 2*num_ghosts,lock=False) # 
+
+
 
 def par_compute_determinant_h(ix):
+
+    
+    print("in par func", sh_r[ix])
 
     # first the metric
     h = np.zeros_like(rank_2_spatial_tensor)
@@ -237,6 +333,9 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, eta, progress_bar, tim
 
     for ix in range(N) :     
         sh_r[ix] = r[ix]
+
+        print(" in get_rhs",  sh_r[ix])
+
         sh_hrr[ix] = hrr[ix]
         sh_htt[ix] = htt[ix]
         sh_hpp[ix] = hpp[ix]
