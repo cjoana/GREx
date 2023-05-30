@@ -27,6 +27,9 @@ class InitialMetricData
         std::array<double, CH_SPACEDIM>
             center;   //!< Centre of perturbation in initial SF bubble
         double width; //!< Width of bump in initial SF bubble
+
+        //CJ adds
+        double L; // size of grid (again)
     };
 
     //! The constructor
@@ -45,23 +48,23 @@ class InitialMetricData
         data_t amplitude = 0.3;
 
 
-        data_t h11 = 1 + amplitude * sin( coords[0] * 2*M_PI/m_params.L   +  M_PI*0.3)
-                       + amplitude * sin( coords[1] * 2*M_PI/m_params.L   +  M_PI*0.3)
-                       + amplitude * sin( coords[2] * 2*M_PI/m_params.L   +  M_PI*0.3);
-        data_t h22 = 1 + amplitude * sin( coords[0] * 2*M_PI/m_params/L   +  M_PI*0.3) 
-                       + amplitude * sin( coords[1] * 2*M_PI/m_params.L   +  M_PI*0.3)
-                       + amplitude * sin( coords[2] * 2*M_PI/m_params.L   +  M_PI*0.3);
+        data_t h11 = 1 + amplitude * sin( coords.x * 2*M_PI/m_params.L   +  M_PI*0.3)
+                       + amplitude * sin( coords.y * 2*M_PI/m_params.L   +  M_PI*0.3)
+                       + amplitude * sin( coords.z * 2*M_PI/m_params.L   +  M_PI*0.3);
+        data_t h22 = 1 + amplitude * sin( coords.x * 2*M_PI/m_params.L   +  M_PI*0.3) 
+                       + amplitude * sin( coords.y * 2*M_PI/m_params.L   +  M_PI*0.3)
+                       + amplitude * sin( coords.z * 2*M_PI/m_params.L   +  M_PI*0.3);
         data_t h33 = 3 - h22 + h33 ;  
         
-        data_t h12 = 0 + amplitude * sin( coords[0] * 2*M_PI/m_params.L   +  M_PI*0.3)
-                       + amplitude * sin( coords[1] * 2*M_PI/m_params.L   +  M_PI*0.3) 
-                       + amplitude * sin( coords[2] * 2*M_PI/m_params.L   +  M_PI*0.3);
-        data_t h13 = 0 + 0.1 * sin( coords[0] * 2*M_PI/m_params.L   +  M_PI*0.5) 
-                       + 0.1 * sin( coords[1] * 2*M_PI/m_params.L   +  M_PI*0.5) 
-                       + 0.1 * sin( coords[2] * 2*M_PI/m_params.L   +  M_PI*0.5); 
-        data_t h23 = 0 + 0.3 * sin( coords[0] * 2*M_PI/m_params.L   +  M_PI*0.9)
-                       + 0.3 * sin( coords[1] * 2*M_PI/m_params.L   +  M_PI*0.9) 
-                       + 0.3 * sin( coords[2] * 2*M_PI/m_params.L   +  M_PI*0.9);
+        data_t h12 = 0 + amplitude * sin( coords.x * 2*M_PI/m_params.L   +  M_PI*0.3)
+                       + amplitude * sin( coords.y * 2*M_PI/m_params.L   +  M_PI*0.3) 
+                       + amplitude * sin( coords.z * 2*M_PI/m_params.L   +  M_PI*0.3);
+        data_t h13 = 0 + 0.1 * sin( coords.x * 2*M_PI/m_params.L   +  M_PI*0.5) 
+                       + 0.1 * sin( coords.y * 2*M_PI/m_params.L   +  M_PI*0.5) 
+                       + 0.1 * sin( coords.z * 2*M_PI/m_params.L   +  M_PI*0.5); 
+        data_t h23 = 0 + 0.3 * sin( coords.x * 2*M_PI/m_params.L   +  M_PI*0.9)
+                       + 0.3 * sin( coords.y * 2*M_PI/m_params.L   +  M_PI*0.9) 
+                       + 0.3 * sin( coords.z * 2*M_PI/m_params.L   +  M_PI*0.9);
      
         // determinant of h_ij
         data_t detH = h11*h22*h33 - (h11*h23*h23 + h22*h13*h13 + h33*h12*h12) + 2*h12*h13*h23;
@@ -74,6 +77,8 @@ class InitialMetricData
         current_cell.store_vars(h11/detH, c_h23);
         current_cell.store_vars(h11/detH, c_h33);
         current_cell.store_vars(1.0, c_chi);
+        current_cell.store_vars(0.0, c_phi); // for now set to 0
+        current_cell.store_vars(0.0, c_Pi);
     }
 
   protected:

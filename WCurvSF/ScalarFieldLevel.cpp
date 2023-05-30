@@ -12,6 +12,7 @@
 #include "TraceARemoval.hpp"
 
 // For RHS update
+#include "AMRReductions.hpp"
 #include "MatterCCZ4RHS.hpp"
 
 // For constraints calculation
@@ -24,6 +25,7 @@
 // Problem specific includes
 #include "ComputePack.hpp"
 #include "GammaCalculator.hpp"
+#include "ScalarInitData.hpp"
 #include "InitialScalarData.hpp"
 #include "InitialMetricData.hpp"
 #include "Potential.hpp"
@@ -50,7 +52,7 @@ void ScalarFieldLevel::specificAdvance()
     // Check for nan's
     if (m_p.nan_check)
         BoxLoops::loop(
-            NanCheck(m_dx, m_p.center, "NaNCheck in specific Advance"),
+            NanCheck(),
             m_state_new, m_state_new, EXCLUDE_GHOST_CELLS, disable_simd());
 }
 
@@ -72,6 +74,13 @@ void ScalarFieldLevel::initialData()
     fillAllGhosts();
     BoxLoops::loop(GammaCalculator(m_dx), m_state_new, m_state_new,
                    EXCLUDE_GHOST_CELLS);
+
+
+    // AMRReductions<VariableType::diagnostic> amr_reductions(m_gr_amr);
+    // double wcurv = amr_reductions.norm(c_Weyl_curv, 2, true);
+    // double ChP = amr_reductions.norm(c_ChP_inv, 2, true);
+    // pout() << "WeylCurv " << wcurv <<  "  C-P " << ChP   << endl;
+
 }
 
 #ifdef CH_USE_HDF5
@@ -115,30 +124,33 @@ void ScalarFieldLevel::prePlotLevel()
 void ScalarFieldLevel::specificEvalRHS(GRLevelData &a_soln, GRLevelData &a_rhs,
                                        const double a_time)
 {
-    // Enforce trace free A_ij and positive chi and alpha
-    BoxLoops::loop(
-        make_compute_pack(TraceARemoval(),
-                          PositiveChiAndAlpha(m_p.min_chi, m_p.min_lapse)),
-        a_soln, a_soln, INCLUDE_GHOST_CELLS);
+    if (m_time < m_p.relaxtime)
+    {
+        // Enforce trace free A_ij and positive chi and alpha
+        BoxLoops::loop(
+            make_compute_pack(TraceARemoval(),
+                            PositiveChiAndAlpha(m_p.min_chi, m_p.min_lapse)),
+            a_soln, a_soln, INCLUDE_GHOST_CELLS);
 
-    // Calculate MatterCCZ4 right hand side with matter_t = ScalarField
-    Potential potential(m_p.potential_params);
-    ScalarFieldWithPotential scalar_field(potential);
-    if (m_p.max_spatial_derivative_order == 4)
-    {
-        MatterCCZ4RHS<ScalarFieldWithPotential, MovingPunctureGauge,
-                      FourthOrderDerivatives>
-            my_ccz4_matter(scalar_field, m_p.ccz4_params, m_dx, m_p.sigma,
-                           m_p.formulation, m_p.G_Newton);
-        BoxLoops::loop(my_ccz4_matter, a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
-    }
-    else if (m_p.max_spatial_derivative_order == 6)
-    {
-        MatterCCZ4RHS<ScalarFieldWithPotential, MovingPunctureGauge,
-                      SixthOrderDerivatives>
-            my_ccz4_matter(scalar_field, m_p.ccz4_params, m_dx, m_p.sigma,
-                           m_p.formulation, m_p.G_Newton);
-        BoxLoops::loop(my_ccz4_matter, a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
+        // Calculate MatterCCZ4 right hand side with matter_t = ScalarField
+        Potential potential(m_p.potential_params);
+        ScalarFieldWithPotential scalar_field(potential);
+        if (m_p.max_spatial_derivative_order == 4)
+        {
+            MatterCCZ4RHS<ScalarFieldWithPotential, MovingPunctureGauge,
+                        FourthOrderDerivatives>
+                my_ccz4_matter(scalar_field, m_p.ccz4_params, m_dx, m_p.sigma,
+                            m_p.formulation, m_p.G_Newton);
+            BoxLoops::loop(my_ccz4_matter, a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
+        }
+        else if (m_p.max_spatial_derivative_order == 6)
+        {
+            MatterCCZ4RHS<ScalarFieldWithPotential, MovingPunctureGauge,
+                        SixthOrderDerivatives>
+                my_ccz4_matter(scalar_field, m_p.ccz4_params, m_dx, m_p.sigma,
+                            m_p.formulation, m_p.G_Newton);
+            BoxLoops::loop(my_ccz4_matter, a_soln, a_rhs, EXCLUDE_GHOST_CELLS);
+        }
     }
 }
 
