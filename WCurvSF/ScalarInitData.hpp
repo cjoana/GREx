@@ -37,7 +37,7 @@ template <class matter_t> class ScalarInitData
         Takes in the grid spacing, plus the relaxation speed, a matter object
         and the value of Newton's constant, which is set to one by default.
     */
-    ScalarInitData(matter_t a_matter, double dx, double K_mean,
+    ScalarInitData(matter_t a_matter, double dx, double K_mean, double rho_mean,
                   double G_Newton = 1.0);
 
     //! The compute member which calculates the RHS at each point in the box \sa
@@ -46,7 +46,8 @@ template <class matter_t> class ScalarInitData
 
   protected:
     matter_t my_matter;         //!< The matter object, e.g. a scalar field.
-    const double m_K_mean;       //!< The EoS of the fluid.
+    const double m_K_mean;       //!< The desired K (homogeneous).
+    const double m_rho_mean;     //!< Current value of rho
     const double m_G_Newton;    //!< Newton's constant, set to one by default.
     const FourthOrderDerivatives
         m_deriv; //!< An object for calculating derivatives of the variables

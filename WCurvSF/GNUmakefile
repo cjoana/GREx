@@ -1,6 +1,6 @@
 # -*- Mode: Makefile -*-
 
-### This makefile produces an executable for each name in the `ebase'
+### This makefile produces an executable for each name in the `ebase' 
 ###  variable using the libraries named in the `LibNames' variable.
 
 # Included makefiles need an absolute path to the Chombo installation

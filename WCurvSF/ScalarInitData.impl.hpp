@@ -12,8 +12,8 @@
 
 template <class matter_t>
 ScalarInitData<matter_t>::ScalarInitData(matter_t a_matter, double dx,
-                                       double K_mean, double G_Newton)
-    : my_matter(a_matter), m_K_mean(K_mean), m_G_Newton(G_Newton),
+                                       double K_mean, double rho_mean, double G_Newton)
+    : my_matter(a_matter), m_K_mean(K_mean), m_rho_mean(rho_mean), m_G_Newton(G_Newton),
       m_deriv(dx)
 {
 }
@@ -38,6 +38,8 @@ void ScalarInitData<matter_t>::compute(Cell<data_t> current_cell) const
 
     current_cell.store_vars(up_vars.Pi, c_Pi);
     current_cell.store_vars(up_vars.K, c_K);
+
+    //current_cell.store_vars(5.0, c_phi);
 }
 
 template <class matter_t>
@@ -60,11 +62,14 @@ void ScalarInitData<matter_t>::rhs_equation(
     // const auto A_UU = raise_all(vars.A, h_UU);
     // const data_t tr_AA = compute_trace(vars.A, A_UU);
 
-    data_t rho = ( (GR_SPACEDIM - 1.)*up_vars.K*up_vars.K/GR_SPACEDIM  
+    data_t Pi2 = ( (GR_SPACEDIM - 1.)*up_vars.K*up_vars.K/GR_SPACEDIM  
             // - tr_AA
-            + ricci.scalar ) / (16.0 * M_PI * m_G_Newton);
+            + ricci.scalar ) / (16.0 * M_PI * m_G_Newton) - m_rho_mean;  //  m_rho_mean gives currently the Potential, only. 
 
-    data_t Pi = (ricci.scalar < 0) ? 0 : 0.5*sqrt(rho)  ;   
+
+    data_t Pi = - sqrt(2*Pi2)  ;   
+
+    // std::cout << "Pi2 =  " <<  Pi2  << "  Pi "<<  Pi << endl;
 
     up_vars.Pi = Pi;
 
