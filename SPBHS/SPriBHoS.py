@@ -24,6 +24,7 @@ start_time = time.time()
 w =1./3.#EQ. of state
 t_initial = 1.0 #initial time
 alpha = 2./(3.*(1.+w))
+
 #numerical initial conditions(background quantities)
 H_bI = alpha/(t_initial) #Initial Hubble constant
 e_bI = (3./(8.*pi))*H_bI**2 #initial energy density of the background
@@ -92,6 +93,8 @@ def solution_FRW(t):
 def energy_FRW(t):
 	e_FRW = vector_ones*e_bI*(t_initial/t)**2
 	return e_FRW
+	
+
 # Dynamical magnitudes
 
 
@@ -113,9 +116,11 @@ def system_dynamic_RK(Up,Rp,Mp,Ap,Gp,ep,devep,devRp,devUp):
 	ratioUR = np.insert(ratioUR, len(ratioUR), derU_R[-1])
 	et = -Ap*ep*(1.+w)*(2.*ratioUR+devUp/devRp)
 	return Ut,Rt,Mt,et
+
 # Dynamical equations of the Runge-Kutta 4 method. We evolve M,R,U and rho
 def system_RK(Upl,Rpl,Mpl,Apl,Gpl,epl,devepl,devRpl,devUpl,dt,t):
-	#Note that we set up the boundary conditions in each time step
+	
+    #Note that we set up the boundary conditions in each time step
 	k1U,k1R,k1M,k1e = system_dynamic_RK(Upl,Rpl,Mpl,Apl,Gpl,epl,devepl,devRpl,devUpl)
 
 	shifte1 = epl+k1e*0.5*dt
@@ -172,12 +177,14 @@ def system_RK(Upl,Rpl,Mpl,Apl,Gpl,epl,devepl,devRpl,devUpl,dt,t):
 	Ap4,Gp4 = system_static(shifte3,shiftM3,shiftR3,shiftU3,e_FRW3)
 	k4U,k4R,k4M,k4e = system_dynamic_RK(shiftU3,shiftR3,shiftM3,Ap4,Gp4,shifte3,devep4,devRp4,devUp4)
 
-	U = Upl +(1./6.)*dt*(k1U+2.*k2U+2.*k3U+k4U)
-	R = Rpl + (1./6.)*dt*(k1R+2.*k2R+2.*k3R+k4R)
-	M = Mpl + (1./6.)*dt*(k1M+2.*k2M+2.*k3M+k4M)
-	e = epl + (1./6.)*dt*(k1e+2.*k2e+2.*k3e+k4e)
+	U = Upl +(1./6.)*dt*(k1U  + 2.*k2U + 2.*k3U + k4U)
+	R = Rpl + (1./6.)*dt*(k1R + 2.*k2R + 2.*k3R + k4R)
+	M = Mpl + (1./6.)*dt*(k1M + 2.*k2M + 2.*k3M + k4M)
+	e = epl + (1./6.)*dt*(k1e + 2.*k2e + 2.*k3e + k4e)
 	return U,R,M,e
-# We solve the magnitudes A,G using the previous variables rho,U,M,R got from the RK method.
+
+
+# We solve the magnitudes A,G (G=Gamma) using the previous variables rho,U,M,R got from the RK method.
 def system_static(epc,Mpc,Rpc,Upc,e_FRWc):
 	Aqq = 1.*(e_FRWc/epc)**(w/(w+1.))
 	fraction = Mpc[:-1]/Rpc[:-1]
