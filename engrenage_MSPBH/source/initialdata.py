@@ -1,23 +1,23 @@
 # initial data file
 
 import sys
-sys.path.append("/home/admin/git/GREx/engrenage_MSPBH/")
+# sys.path.append("/home/admin/git/GREx/engrenage_MSPBH/")
+sys.path.append("../")
 
-# from source.uservariables import *
-# from source.tensoralgebra import *
-# from source.fourthorderderivatives import *
-# from source.logderivatives import *
-# from source.gridfunctions import *
-# from source.misnersharp import *
+from source.uservariables import *
+from source.tensoralgebra import *
+from source.fourthorderderivatives import *
+from source.logderivatives import *
+from source.gridfunctions import *
+from source.misnersharp import *
 
 import numpy as np
-from scipy.optimize import bisect
+import scipy.optimize as opt
+# from scipy.optimize import bisect, root
 #from scipy.interpolate import interp1d
 
 
-
-
-
+# INITIAL PARAMS 
 
 omega = 1./3
 
@@ -26,13 +26,14 @@ alpha = 2./(3.*(1.+omega))
 H_ini = alpha/t_ini
 rho_bkg_ini = 3./(8.*np.pi) *H_ini**2
 a_ini = 1
-
 R_max = 100 * H_ini
 
+nu = 0.9
+fNL = -0.8
+n_Horizons = 30
+k_star = 1./(n_Horizons*H_ini)
 
-nu = 0.8
-fNL = 0
-k_star = 10 / H_ini
+# print(f'H_ini in {H_ini}')
 
 def get_zeta(r):  # curvature 
 	
@@ -41,11 +42,20 @@ def get_zeta(r):  # curvature
 	
 def get_dzetadr(r):  # d/dr curvature 
 	
-	arg = k_star*r
-	dsinc =  (arg * np.cos(arg) - np.sin(arg)) /arg/r
+	A = nu
+	B = 3/5*fNL*nu**2
+	k = k_star
+	x = r
 	
-	dr_zeta = nu * dsinc  +  \
-				3/5*fNL*nu**2 * 2 *np.sinc(arg) * dsinc
+	dr_zeta = ((k*x*np.cos(k*x) - np.sin(k*x)) * \
+			  (A + 2*B*np.sinc(k*x)))/(k*x**2)
+		
+	""" 
+	Wolfram alpha: 
+	d/dx(A sinc(x k) + B sinc(x k)^2) = 
+			((k x cos(k x) - sin(k x)) (A + 2 B sinc(k x)))/(k x^2)
+	"""			
+	
 	return dr_zeta
 	
 def get_d2zetadr2(r):  # d2/dr2 curvature 
@@ -60,58 +70,19 @@ def get_d2zetadr2(r):  # d2/dr2 curvature
 				  B*(2.*k * np.sinc(k*x) * ((2*np.sin(k*x))/(k**2*x**3) - \
 				  (2*np.cos(k*x))/(k*x**2) - np.sin(k*x)/x) +  \
 				  2.*k**2 * (np.cos(k*x)/(k*x) - np.sin(k*x)/(k**2*x**2))**2)
+				  
+				  
+	""" 
+	Wolfram alpha: 
+	d^2/dx^2(A sinc(x k) + B sinc(x k)^2) = 
+		A k ((2 sin(k x))/(k^2 x^3) 
+		- (2 cos(k x))/(k x^2) - sin(k x)/x) 
+		+ B (2 k sinc(k x) ((2 sin(k x))/(k^2 x^3)
+		- (2 cos(k x))/(k x^2) - sin(k x)/x) 
+		+ 2 k^2 (cos(k x)/(k x) - sin(k x)/(k^2 x^2))^2)
+	"""
 	
 	return d2dr2_zeta
-	
-
-
-
-def compact_function(M, R, rho_bkg):
-	C = 2*M/R  - (8./3.)*np.pi*rho_bkg * R**2
-	return C
-
-
-def get_rm():
-	
-	def _root_func(r) :
-		dz = get_dzetadr(r)
-		ddz = get_d2zetadr2(r)
-		
-		return dz + r * ddz
-	
-	rm = bisect(_root_func, 1e-3, R_max)
-	
-	return rm 
-
-
-#### Test 
-
-
-x = np.linspace(0.001, 1, 200)
-y = get_zeta(x)
-
-rm = 1 # get_rm()
-
-import matplotlib.pyplot as plt
-
-def _root_func(r) :
-		dz = get_dzetadr(r)
-		ddz = get_d2zetadr2(r)
-		
-		return dz + r * ddz
-
-y2 = _root_func(x)
-
-plt.plot(x, y)
-plt.plot(x, y2)
-
-
-plt.axvline(rm)
-plt.show()
-
-
-
-#####
 
 	
 def get_L_pert(a, rm):
@@ -197,7 +168,7 @@ def get_tilde_R(r, rm, omega):
 
 def get_expansion_R(t, r, rm, omega, epsilon):
 	
-	a = get_scalefactor(t)
+	a = get_scalefactor(t, omega)
 	zeta = get_zeta(r)
 	tilde_R = get_tilde_R(r, rm, omega)
 	
@@ -206,7 +177,7 @@ def get_expansion_R(t, r, rm, omega, epsilon):
 	
 def get_expansion_U(t, r, rm, omega, epsilon):
 	
-	H = get_Hubble(t)
+	H = get_Hubble(t, omega)
 	tilde_U = get_tilde_U(r, rm, omega)
 	R = get_expansion_R(t, r, rm, omega, epsilon)
 	
@@ -236,11 +207,44 @@ def get_expansion_M(t, r, rm, omega, epsilon):
 
 
 
+def compact_function(M, R, rho_bkg):
+	C = (8./3.)*np.pi*rho_bkg * R**2 - 2*M/R  
+	return C
 
 
+def get_rm(print_epsilon=0):
+	
+	def _root_func(r) :
+		dz = get_dzetadr(r)
+		ddz = get_d2zetadr2(r)
+		
+		return dz + r * ddz
+		
+	a, b = [0.01, 100]
+	xs = np.linspace(a, b, 100)
+	ys = _root_func(xs)
+	sa = np.sign(ys[0])
+	idx = np.where( np.sign(ys)*sa < 0)[0] 
+	b = xs[idx][0]	
+	
+	# rm = opt.bisect(_root_func, 1e-3, R_max)
+	rm = opt.brentq(_root_func, a, b)
+	# print(f"rm is {rm}")
+	
+	L = get_L_pert(1, rm)
+	eps = get_epsilon(H_ini, L)
+	if print_epsilon: print(f"epsilon is {eps}")
+	
+	
+	return rm 
 
 
-
+def get_expansion_Compaction(r, omega):
+	dzeta = get_dzetadr(r)
+	C = 3 * (1+omega)/(5+3*omega) * (1 - (1 + r*dzeta)**2) 
+	return C
+	
+	
 
 
 # Function to get initial state 
@@ -248,7 +252,7 @@ def get_expansion_M(t, r, rm, omega, epsilon):
 def get_initial_state(R_max, N_r, r_is_logarithmic) :
     
     # Set up grid values
-    dx, N, r, logarithmic_dr = setup_grid(R, N_r, r_is_logarithmic)
+    dx, N, r, logarithmic_dr = setup_grid(R_max, N_r, r_is_logarithmic)
     
     # predefine some userful quantities
     oneoverlogdr = 1.0 / logarithmic_dr
@@ -283,3 +287,88 @@ def get_initial_state(R_max, N_r, r_is_logarithmic) :
     fill_inner_boundary(initial_state, dx, N, r_is_logarithmic)
                            
     return r, initial_state
+    
+    
+
+
+
+
+#########################################################
+#### Test  Plot Zeta, Compfaction (C), and M, R
+
+Do_zeta_C_rm_test = False 
+if Do_zeta_C_rm_test: 
+	x = np.linspace(0.001, 150, 200)
+	y = get_zeta(x)
+
+	rm = 1 # get_rm()
+
+	import matplotlib.pyplot as plt
+
+	def _root_func(r) :
+			dz = get_dzetadr(r)
+			ddz = get_d2zetadr2(r)
+			
+			return dz + r * ddz
+
+	y2 = get_expansion_Compaction(x, 1./3.)
+	y3 = _root_func(x)
+
+	y  = y/y.max()
+	y2 = y2/y2.max()
+	y3 = y3/y3.max()
+
+	rm = get_rm()
+
+	plt.plot(x, y, label=r"$\zeta$")
+	plt.plot(x, y2, label="C")
+	plt.plot(x, y3, label="root func")
+	plt.axvline(rm, color="k", ls="--", label="rm")
+	plt.legend()
+	plt.show()
+
+
+	rho_bkg = get_rho_bkg(1, rho_bkg_ini)
+	M = lambda r:  get_expansion_M(1, r, rm, 1./3., 0.001)
+	R = lambda r: get_expansion_R(1, r, rm, 1./3., 0.001)
+	C = lambda r : compact_function(M(r), R(r), rho_bkg)
+
+	y  = M(x)/R(x)
+	y2 = y2
+	y3 = R(x)
+	y4 = C(x)
+
+	y  = y/y.max()
+	y2 = y2/y2.max()
+	y3 = y3/y3.max()
+	y4 = y4/y4.max()
+
+	x = x/rm
+	nrm = 1 #rm  
+
+	plt.plot(x, y, label=r"$M$")
+	plt.plot(x, y2, label="C")
+	plt.plot(x, y4, label="C2")
+	plt.plot(x, y3, label="R")
+	plt.axvline(nrm, color="k", ls="--", label="rm")
+	plt.legend()
+	plt.show()
+
+########
+#  Test get initial state: 
+
+Do_initial_state_test = True
+if Do_initial_state_test: 
+	
+	import matplotlib.pyplot as plt
+	r_is_logarithmic = 0
+	N_r = 100
+	
+	r, initial_state = get_initial_state(R_max, N_r, r_is_logarithmic)
+
+	plt.plot(initial_state)
+	plt.yscale('log')
+	plt.show()
+
+
+#########################################################
