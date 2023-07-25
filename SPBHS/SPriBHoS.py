@@ -368,6 +368,11 @@ def bisection(thresh_low, thresh_high, err):
 #--------------------------------------------------------------------------------
 
 epsrr,tH,rmww = epsilon_horizon_crosing(rm_N) #we get the epsilon parametter
+
+print(f'epsilon = {epsrr}')
+print(f'tH = {tH}')
+print(f'rm = {rmww}')
+
 bisection(thresh_min, thresh_max , error) #we start with the bisection procedure
 
 

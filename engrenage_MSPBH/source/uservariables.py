@@ -19,12 +19,18 @@ variable_names = ["U", "R", "M", "rho"]
 
 # parity under r -> -r
 parity = [ 
-          1, 1, 1, 1,      # U, R, M, rho, 
+         -1, -1, -1, 1,      # U, R, M, rho, 
          ]  
 
 # scaling at larger r as power of r, i.e. var ~ r^asymptotic_power
 # currently only for linear r
-asymptotic_power =   [
-					   1., 1.,                # U, R, 
-                       3., 0, 		     	  # M, rho 
-					 ]    
+# asymptotic_power =   [
+					   # 1., 1.0,                # U, R, 
+                       # 3., 0, 		     	   # M, rho 
+		# #     
+					   # # -1., -1.,                # U, R, 
+                       # # -1., -1., 		     	  # M, rho 
+					 # ]    
+
+
+asymptotic_power =  [1., 1, 3., 0] 		 # U, R, M, rho, 

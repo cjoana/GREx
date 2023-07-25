@@ -103,12 +103,16 @@ def fill_inner_boundary_ivar(state, dx, N, r_is_logarithmic, ivar) :
                               + 0.5 * (dist1 * dist1) * d2fdx2_a ) * var_parity
         state[idx_a - 4] = (state[idx_a] + dist2 * dfdx_a
                               + 0.5 * (dist2 * dist2) * d2fdx2_a ) * var_parity            
-    else : 
+    else :
+	
         # Apply a simple reflection of the values
-        boundary_cells = np.array([(ivar)*N, (ivar)*N+1, (ivar)*N+2])
+        # boundary_cells = np.array([(ivar)*N, (ivar)*N+1, (ivar)*N+2])
+        boundary_cells = np.array([(ivar)*N + ig  for ig in range(num_ghosts)])
         for count, ix in enumerate(boundary_cells) :
-            offset = 5 - 2*count
+            # offset = 5 - 2*count
+            offset = 2*num_ghosts -1 - 2*count
             state[ix] = state[ix + offset] * var_parity
+            # print(f' {ix} gets value from {ix+offset}')
 
     return 0 
 
@@ -124,16 +128,19 @@ def fill_outer_boundary_ivar(state, dx, N, r_is_logarithmic, ivar) :
     
     R_lin = dx * (N - 2 * num_ghosts)
     r_linear = np.linspace(-(num_ghosts-0.5)*dx, R_lin+(num_ghosts-0.5)*dx, N)    
-    boundary_cells = np.array([(ivar + 1)*N-3, (ivar + 1)*N-2, (ivar + 1)*N-1])
-    for count, ix in enumerate(boundary_cells) :
+    # boundary_cells = np.array([(ivar + 1)*N-3, (ivar + 1)*N-2, (ivar + 1)*N-1])
+    boundary_cells = np.array([(ivar + 1)*N-ig-1 for ig in range(num_ghosts)[::-1] ])
+    for count, ix in enumerate(boundary_cells): 
         offset = -1 - count
         if(r_is_logarithmic) :
             #zeroth order interpolation for now
             state[ix]    = state[ix + offset]            
         else :
             # use asymptotic powers
-            state[ix]    = state[ix + offset] * ((r_linear[N - 3 + count] / r_linear[N - 4]) 
-                                                                         ** asymptotic_power[ivar])
+            power = asymptotic_power[ivar]
+            state[ix] = state[ix + offset] * \
+			  ((r_linear[N-num_ghosts + count]  /     # r at ghost cell
+                r_linear[N-num_ghosts -1])**power )   # r at last non-ghost cell
     return 0
 
 # Manage the state vector (for readability mainly)

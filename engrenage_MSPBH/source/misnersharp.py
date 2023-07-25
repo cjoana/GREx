@@ -1,6 +1,13 @@
+import sys
+# sys.path.append("/home/admin/git/GREx/engrenage_MSPBH/")
+sys.path.append("../")
+
 import numpy as np
 import time
+from  source.gridfunctions import num_ghosts
 
+
+print_Gamma_set_zero = 0
 
 
 
@@ -12,6 +19,11 @@ def get_rho_bkg(t_over_t_ini, rho_bkg_ini):
 def get_A(rho, rho_bkg, omega): 
 	
 	A = (rho_bkg/rho)**(omega/(omega+1))
+	
+	if A!=A:
+		print("A imposed 1!! with", rho_bkg, rho, omega  )
+		A = 1
+	
 	return A
 
 def get_B(U, R, M, dRdr):
@@ -24,14 +36,18 @@ def get_B(U, R, M, dRdr):
 def get_Gamma(U, R, M):
 	
 	Gamma = np.sqrt(1 + U**2 - 2*M/R)
+	if Gamma!=Gamma: 
+		# print("Gamma imposed zero!! with U,M, R ", U, M, R, "and U**2, 2M/R, diff ", U**2, 2*M/R,  U**2 - 2*M/R,  )
+		if print_Gamma_set_zero: print("Gamma imposed zero!! with sqrt of ", 1 + U**2 - 2*M/R,  )
+		Gamma = 0
+		
 	return Gamma
 	
 
 # RHS equations 
 	
-def get_rhs_U(U, M, R, rho, drhodr, dRdr, A, omega):
+def get_rhs_U(U, M, R, rho, drhodr, dRdr, A, Gamma, omega):
 	
-	Gamma = get_Gamma(U, R, M)
 	dUdt = - A * ( omega/(omega+1) * (drhodr * Gamma**2)/(rho * dRdr) + M/R**2 + 4*np.pi*R*omega*rho)
 	return dUdt
 	
@@ -47,7 +63,7 @@ def get_rhs_rho(U, R, rho, dUdr, dRdr, A, omega):
 
 def get_rhs_M(U, R, rho, A, omega):
 	
-	dMdt = -4*np.pi*A*omega*rho*U*R**2
+	dMdt = - 4*np.pi*A*omega*rho*U*R**2
 	return dMdt
 
 

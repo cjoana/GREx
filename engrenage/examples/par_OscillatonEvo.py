@@ -22,7 +22,7 @@ from source.hamdiagnostic import *
 
 DefSimParams = True 
 # Input parameters for grid and evolution here
-N_r = 100 # num points on physical grid
+N_r = 500 # num points on physical grid
 R = 50.0 # Maximum outer radius
 
 dx = R/N_r

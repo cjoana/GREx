@@ -15,11 +15,61 @@ from source.misnersharp import *
 # from source.bssnrhs import *
 
 from source.initialdata import rho_bkg_ini, t_ini
-    
+from source.initialdata import *  
 # function that returns the rhs for each of the field vars
 # see further details in https://github.com/GRChombo/engrenage/wiki/Useful-code-background
 
 
+
+
+# def _rhs_fill_outer_boundary_ivar(state, dx, N, r_is_logarithmic, ivar, t, rm, omega, epsilon) :
+    
+    # R_lin = dx * (N - 2 * num_ghosts)
+    # r_linear = np.linspace(-(num_ghosts-0.5)*dx, R_lin+(num_ghosts-0.5)*dx, N)    
+    # # boundary_cells = np.array([(ivar + 1)*N-3, (ivar + 1)*N-2, (ivar + 1)*N-1])
+    # boundary_cells = np.array([(ivar + 1)*N-ig-1 for ig in range(num_ghosts)[::-1] ])
+    # for count, ix in enumerate(boundary_cells): 
+        # offset = -1 - count
+        # if(r_is_logarithmic) :
+            # #zeroth order interpolation for now
+            # state[ix]    = state[ix + offset]            
+        # else :    
+            # if ivar == idx_U:
+               # r_here = r_linear[N-num_ghosts + count]
+               # state[ix] = get_expansion_U(t, r_here, rm, omega, epsilon)
+            # elif ivar == idx_R:
+               # r_here = r_linear[N-num_ghosts + count]
+               # state[ix] = get_expansion_R(t, r_here, rm, omega, epsilon)
+            # elif ivar == idx_M:
+               # r_here = r_linear[N-num_ghosts + count]
+               # state[ix] = get_expansion_M(t, r_here, rm, omega, epsilon)
+            # elif ivar == idx_rho:
+               # r_here = r_linear[N-num_ghosts + count]
+               # state[ix] = get_expansion_rho(t, r_here, rm, omega, epsilon)
+            # else:                
+                # # use asymptotic powers
+                # power = asymptotic_power[ivar]
+                # state[ix] = state[ix + offset] * \
+                  # ((r_linear[N-num_ghosts + count]  /     # r at ghost cell
+                    # r_linear[N-num_ghosts -1])**power )   # r at last non-ghost cell
+    # return 0
+
+
+# def _rhs_fill_outer_boundary(state, dx, N, r_is_logarithmic, t, rm, omega, epsilon) :
+
+    # for ivar in range(0, NUM_VARS) :
+        # _rhs_fill_outer_boundary_ivar(state, dx, N, r_is_logarithmic, ivar, t, rm, omega, epsilon)
+
+    # return 0 
+      
+    
+        
+    
+    
+    
+################################ Main RHS get function  
+    
+    
 
 def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_bar, time_state) :      ###CJ!!! remove eta  --> change to params
 
@@ -45,26 +95,28 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_bar, t
     # Unpack variables from current_state - see uservariables.py
     ### u, v , phi, hrr, htt, hpp, K, arr, att, app, lambdar, shiftr, br, lapse = unpack_state(current_state, N_r) 
     U, R, M, rho = unpack_state(current_state, N_r) 
-    
+        
     # t0 = time.time()
     # print("grid and var setup done in ", t0-start_time)
+    
        
     ####################################################################################################
 
     # get the various derivs that we need to evolve things
     if(r_is_logarithmic) : #take logarithmic derivatives
-        
+			
         # # second derivatives
         # d2Udx2     = get_logd2fdx2(U, oneoverlogdr2)
         # d2Rdx2   = get_logd2fdx2(R, oneoverlogdr2)
         # d2Mdx2   = get_logd2fdx2(M, oneoverlogdr2)
         # d2rhodx2   = get_logd2fdx2(rho, oneoverlogdr2)
         
-        # first derivatives        
-        dUdr       = get_logdfdx(U, oneoverlogdr)
-        dRdr       = get_logdfdx(R, oneoverlogdr)
-        dMdr     = get_logdfdx(M, oneoverlogdr)
-        dRhodr     = get_logdfdx(rho, oneoverlogdr)
+        # # first derivatives        
+        # dUdr       = get_logdfdx(U, oneoverlogdr)
+        # dRdr       = get_logdfdx(R, oneoverlogdr)
+        # dMdr       = get_logdfdx(M, oneoverlogdr)
+        # drhodr     = get_logdfdx(rho, oneoverlogdr)
+        raise()
     
     else :
         
@@ -78,7 +130,11 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_bar, t
         dUdr       = get_dfdx(U, oneoverdx)
         dRdr       = get_dfdx(R, oneoverdx)
         dMdr       = get_dfdx(M, oneoverdx)
-        drhodr       = get_dfdx(rho, oneoverdx)
+        drhodr     = get_dfdx(rho, oneoverdx)
+        
+        # B.C. like A. Escriva does ... 
+        drhodr[:num_ghosts+1] = 0
+        drhodr[-num_ghosts-1:] = 0
 
  
 
@@ -115,16 +171,17 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_bar, t
         
         rho_bkg = get_rho_bkg(t_i/t_ini, rho_bkg_ini)
         
-        A = get_A(rho, rho_bkg, omega)
+        A = get_A(rho[ix], rho_bkg, omega)
+        Gamma = get_Gamma(U[ix], R[ix], M[ix])
         
         # Get the Misner-sharp rhs 
-        rhs_U[ix]     =  get_rhs_U(U, M, R, rho, drhodr, dRdr, A, omega)
+        rhs_U[ix]     =  get_rhs_U(U[ix], M[ix], R[ix], rho[ix], drhodr[ix], dRdr[ix], A, Gamma, omega)
         
-        rhs_R[ix]     =  get_rhs_R(U, A)
+        rhs_R[ix]     =  get_rhs_R(U[ix], A)
         
-        rhs_M[ix]     =  get_rhs_M(U, R, rho, A, omega) 
+        rhs_M[ix]     =  get_rhs_M(U[ix], R[ix], rho[ix], A, omega) 
         
-        rhs_rho[ix]   =  get_rhs_rho(U, R, rho, dUdr, dRdr, A, omega)
+        rhs_rho[ix]   =  get_rhs_rho(U[ix], R[ix], rho[ix], dUdr[ix], dRdr[ix], A, omega)
                    
     # end of rhs iteration over grid points   
     # t3 = time.time()
@@ -132,8 +189,17 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_bar, t
     
     ####################################################################################################
 
+	# B.C. like A. Escriva does ... 
+    rhs_U[:num_ghosts+1] = 0
+    rhs_M[:num_ghosts+1] = 0
+    rhs_R[:num_ghosts+1] = 0
+
+
+
     #package up the rhs values into a vector rhs (like current_state) for return - see uservariables.py
     pack_state(rhs, N_r, rhs_U, rhs_R , rhs_M, rhs_rho)
+
+
 
     #################################################################################################### 
             
@@ -160,8 +226,14 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_bar, t
     
     # overwrite outer boundaries with extrapolation (order specified in uservariables.py)
     fill_outer_boundary(current_state, dx, N, r_is_logarithmic)
+    fill_outer_boundary(rhs, dx, N, r_is_logarithmic)
+    
+    # rm = get_rm()
+    # epsilon = 0.01
+    # _rhs_fill_outer_boundary(current_state, dx, N, r_is_logarithmic, t_i, rm, omega, epsilon)
 
     # overwrite inner cells using parity under r -> - r
+    fill_inner_boundary(current_state, dx, N, r_is_logarithmic)
     fill_inner_boundary(rhs, dx, N, r_is_logarithmic)
     
     # t5 = time.time()

@@ -11,12 +11,13 @@ from source.gridfunctions import *
 # second derivative
 d2dx2_stencil = np.array([-1., +16., -30., +16., -1.0]) / 12.0
 
-def get_d2fdx2(f, oneoverdxsquared) :
+def get_d2fdx2(f, oneoverdxsquared, set_ghosts_zero=True):
     # Convolve with the stencil; mode='same' will give result of size of f
     f_xx = np.convolve(f, d2dx2_stencil, mode='same')
     # Clear out the ghost zones
-    f_xx[0:num_ghosts] = 0.
-    f_xx[-num_ghosts:] = 0.
+    if set_ghosts_zero:
+       f_xx[0:num_ghosts] = 0.
+       f_xx[-num_ghosts:] = 0.
 
     return oneoverdxsquared * f_xx
 
@@ -25,12 +26,13 @@ def get_d2fdx2(f, oneoverdxsquared) :
 # https://web.media.mit.edu/~crtaylor/calculator.html
 ddx_stencil = np.array([-1., +8., 0., -8., +1.]) / 12.0
 
-def get_dfdx(f, oneoverdx) :
+def get_dfdx(f, oneoverdx, set_ghosts_zero=True):
     # Convolve with the stencil; mode='same' will give result of size of f
     f_x = np.convolve(f, ddx_stencil, mode='same')
     # Clear out the ghost zones
-    f_x[0:num_ghosts] = 0.
-    f_x[-num_ghosts:] = 0.
+    if set_ghosts_zero:
+       f_x[0:num_ghosts] = 0.
+       f_x[-num_ghosts:] = 0.
         
     return oneoverdx * f_x
 
