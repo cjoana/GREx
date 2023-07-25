@@ -35,20 +35,38 @@ def get_B(U, R, M, dRdr):
 
 def get_Gamma(U, R, M):
 	
-	Gamma = np.sqrt(1 + U**2 - 2*M/R)
-	if Gamma!=Gamma: 
+	disc = 1 + U**2 - 2*M/R
+	
+	if disc <0: 
 		# print("Gamma imposed zero!! with U,M, R ", U, M, R, "and U**2, 2M/R, diff ", U**2, 2*M/R,  U**2 - 2*M/R,  )
 		if print_Gamma_set_zero: print("Gamma imposed zero!! with sqrt of ", 1 + U**2 - 2*M/R,  )
+		disc = 0
 		Gamma = 0
-		
+	else: Gamma = np.sqrt(disc)
+			
 	return Gamma
 	
 
 # RHS equations 
 	
-def get_rhs_U(U, M, R, rho, drhodr, dRdr, A, Gamma, omega):
+def get_rhs_U(U, M, R, rho, dRdr, drhodr, A, Gamma, omega):
 	
 	dUdt = - A * ( omega/(omega+1) * (drhodr * Gamma**2)/(rho * dRdr) + M/R**2 + 4*np.pi*R*omega*rho)
+	
+	img = np.imag(dUdt)
+	if img != 0:     ## this happens when rho <0 : now we impsoe rho[rho<0] = np.min(np.abs(rho)) during evolution.
+		print( "rhs U got imaginary", dUdt)
+		print(f"U = {U}")
+		print(f"M = {M}")
+		print(f"R = {R}")
+		print(f"rho = {rho}")
+		print(f"dRdr = {dRdr}")
+		print(f"A = {A}")
+		print(f"Gamma = {Gamma}")
+		print(f"omega = {omega}")
+	
+	dUdt = np.real(dUdt)
+	
 	return dUdt
 	
 def get_rhs_R(U, A):
@@ -56,10 +74,17 @@ def get_rhs_R(U, A):
 	dRdt = A * U
 	return dRdt
 
+
 def get_rhs_rho(U, R, rho, dUdr, dRdr, A, omega):
 	
-	drhodt = - A*rho*(1+omega)*(2*U/R + dUdr/dRdr)
+	# drhodt = - A*rho*(1+omega)*(2*U/R + dUdr/dRdr)
+	
+	fraction = dUdr/ (dRdr + 0.01)
+	
+	drhodt = - A*rho*(1+omega)*(2*U/R + fraction)
+	
 	return drhodt
+
 
 def get_rhs_M(U, R, rho, A, omega):
 	

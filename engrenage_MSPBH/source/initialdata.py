@@ -29,7 +29,7 @@ a_ini = 1
 
 R_max = 200 * H_ini
 
-nu = 0.9
+nu = 0.1
 fNL = -1
 n_Horizons = 10
 #k_star = 1./(n_Horizons*H_ini)

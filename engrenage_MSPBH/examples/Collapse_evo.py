@@ -15,8 +15,8 @@ sys.path.append('./engrenage_MSPBH/')
 sys.path.append('../')
 
  
-from source._par_rhsevolution import *  # go here to look at how the evolution works
-# from source.rhsevolution import *             # go here to look at how the evolution works
+# from source._par_rhsevolution import *  # go here to look at how the evolution works
+from source.rhsevolution import *             # go here to look at how the evolution works
 from source.initialdata import *              # go here to change the initial conditions
 # from source.hamdiagnostic import *  
 
@@ -38,9 +38,9 @@ a_ini = 1
 
 R_max = 200 * H_ini
 
-nu = 0.9
-fNL = -1
-n_Horizons = 10
+# nu = 0.9
+# fNL = -1
+# n_Horizons = 10
 #k_star = 1./(n_Horizons*H_ini)
 
 # k_star = (n_Horizons/H_ini/2.7471)**-1 
@@ -251,9 +251,9 @@ start = time.time()
 # for control of time integrator and spatial grid
 t_ini = 1.0 
 dx = R_max/N_r
-dt_multiplier = 0.1
+dt_multiplier = 0.01
 dt = dx * dt_multiplier
-N_t = 1000
+N_t = 10000
 T  = t_ini + dt * N_t
 # T = 2.0 # Maximum evolution time
 # N_t = 10 # time resolution (only for outputs, not for integration)
@@ -263,7 +263,7 @@ T  = t_ini + dt * N_t
 num_tslides = 5
 t_sol = np.linspace(t_ini, T-5*dt, num_tslides)
 
-sigma = 1./ dt_multiplier # kreiss-oliger damping coefficient, max_step should be limited to 0.1 R_max/N_r  
+sigma = 0.1/ dt_multiplier # kreiss-oliger damping coefficient, max_step should be limited to 0.1 R_max/N_r  
 # if(max_step > R_max/N_r/sigma): print("WARNING: kreiss oliger condition not satisfied!")
 
 
@@ -281,7 +281,9 @@ with tqdm(total=N_t, unit=" ") as progress_bar:
                                args=(R_max, N_r, r_is_logarithmic, sigma, progress_bar, [t_ini, dt]),
                         #atol=1e-5, rtol=1e-5,
                         max_step= dt, #for stability and for KO coeff of 10
-                        method='RK45', dense_output=True)
+                        method='RK45',
+                        # method='LSODA',
+                        dense_output=True)
 
 # Interpolate the solution at the time points defined in myparams.py
 solution = dense_solution.sol(t_sol).T
@@ -331,6 +333,8 @@ if True:
 	
 	t = t_sol
 	
+	xmin, xmax = [0,4]
+	
 	fig, axs = plt.subplots(2,4, figsize=(17,8))
 	
 	for i, t_i in enumerate(t) :
@@ -366,6 +370,7 @@ if True:
 		ax.plot(r_over_rm[:], f_t[:], label=labelt)
 		ax.set_ylim(-2,3)
 		ax.set_ylabel('C')
+		ax.set_ylim(xmin,xmax)
 		
 		ax = axs[0,1]
 		f_t = 2*M/R
@@ -374,6 +379,7 @@ if True:
 		ax.set_xlim(0,1.5)
 		ax.legend()
 		ax.set_ylabel('M/R')
+		ax.set_ylim(xmin,xmax)
 		
 		ax = axs[1,0]
 		f_t = R
@@ -382,6 +388,7 @@ if True:
 		# ax.set_xscale('log')
 		ax.set_yscale('log')
 		ax.set_ylabel('R')
+		ax.set_ylim(xmin,xmax)
 		
 		
 		ax = axs[1,1]
@@ -390,6 +397,7 @@ if True:
 		# ax.set_ylim(0.1,1e4)
 		# ax.set_yscale('log')
 		ax.set_ylabel('U')
+		ax.set_ylim(xmin,xmax)
 		
 		ax = axs[0,2]
 		f_t = M
@@ -409,6 +417,7 @@ if True:
 		ax.set_ylabel('rho')
 		# ax.set_xscale('log')
 		ax.set_yscale('log')
+		ax.set_ylim(xmin,xmax)
 		
 		
 		ax = axs[0,3]
@@ -421,6 +430,7 @@ if True:
 		ax.set_ylabel('rho')
 		# ax.set_xscale('log')
 		# ax.set_yscale('log')
+		ax.set_ylim(xmin,xmax)
 		
 		
 		ax = axs[1,3]
@@ -430,6 +440,7 @@ if True:
 		ax.set_ylabel('Ham')
 		# ax.set_xscale('log')
 		ax.set_yscale('log')
+		ax.set_ylim(xmin,xmax)
 		
 				
 		
@@ -448,6 +459,96 @@ if True:
 	plt.tight_layout()
 	plt.savefig('evol_data_example.png', dpi=100)
 	# plt.show()	
+	
+	
+	
+	fig, axs = plt.subplots(2,3, figsize=(17,8))
+	
+	for i, t_i in enumerate(t) :
+		# if not (i%5 ==0) : continue
+		# if t_i < t_ini : continue
+		labelt = "t="+str(round(t_i,2))
+		
+		vars_vec = solution[i,:]
+		U, R, M, rho = unpack_state(vars_vec, N_r)
+		
+		# var = idx_R
+		# R = solution[i, var * (N_r + 2*num_ghosts): (var + 1) * (N_r + 2*num_ghosts)]
+		# var = idx_M
+		# M = solution[i, var * (N_r + 2*num_ghosts): (var + 1) * (N_r + 2*num_ghosts)]
+
+		
+		dUdr = get_dfdx(U, oneoverdx)
+		drhodr = get_dfdx(rho, oneoverdx)
+		dMdr = get_dfdx(M, oneoverdx)
+		dRdr = get_dfdx(R, oneoverdx)
+		
+		# f_t = 2*M/R
+		f_t = dUdr
+		
+		r_over_rm = r/rm
+		
+		ln = len(r)
+		ax = axs[0,0]
+		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		# ax.set_ylim(-2,3)
+		ax.set_ylabel('dUdr')
+		
+		ax = axs[0,1]
+		f_t = dMdr
+		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		ax.set_ylim(xmin,xmax)
+		# ax.set_xlim(0,1.5)
+		ax.legend()
+		ax.set_ylabel('dMdr')
+		
+		ax = axs[1,0]
+		f_t = dRdr
+		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		# ax.set_ylim(0.1,1e4)
+		# ax.set_xscale('log')
+		# ax.set_yscale('log')
+		ax.set_ylabel('dRdr')
+		ax.set_ylim(xmin,xmax)
+		
+		
+		ax = axs[1,1]
+		f_t = drhodr
+		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		# ax.set_ylim(0.1,1e4)
+		# ax.set_yscale('log')
+		ax.set_ylabel('drhodr')
+		ax.set_ylim(xmin,xmax)
+		
+		ax = axs[1,2]
+		f_t = rho
+		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		# ax.set_ylim(0.1,1e4)
+		# ax.set_yscale('log')
+		ax.set_ylabel('rho')
+		ax.set_ylim(xmin,xmax)
+
+
+		rho_bkg = get_rho_bkg(t_i, rho_bkg_ini)
+		A = np.array([ get_A(rho[ii], rho_bkg, omega) for ii, rrr in enumerate(rho)]) 
+		Gamma =  np.array([ get_Gamma(U[ii], r[ii], M[i]) for ii, rrr in enumerate(U)])  
+		rhs_rho  =  get_rhs_rho(U, R, rho, dUdr, dRdr, A, omega)
+		
+		ax = axs[0,2]
+		f_t = rhs_rho
+		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		# ax.set_ylim(0.1,1e4)
+		# ax.set_yscale('log')
+		ax.set_ylabel('rhs rho')
+		ax.set_ylim(xmin,xmax)
+
+		
+		
+		
+		
+	plt.tight_layout()
+	plt.savefig('evol_derivatives_example.png', dpi=100)
+	# plt.show()
 
 
 

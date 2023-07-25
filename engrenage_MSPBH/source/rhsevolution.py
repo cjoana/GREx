@@ -95,6 +95,11 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_bar, t
     # Unpack variables from current_state - see uservariables.py
     ### u, v , phi, hrr, htt, hpp, K, arr, att, app, lambdar, shiftr, br, lapse = unpack_state(current_state, N_r) 
     U, R, M, rho = unpack_state(current_state, N_r) 
+    
+    rho_bkg = get_rho_bkg(t_i/t_ini, rho_bkg_ini)
+    rho[-num_ghosts-1:] = rho_bkg
+    if np.sum(rho<0) >0 : print("  WARNING rho become negative, set to min rho.")
+    rho[rho<0] = rho_bkg
         
     # t0 = time.time()
     # print("grid and var setup done in ", t0-start_time)
@@ -133,8 +138,8 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_bar, t
         drhodr     = get_dfdx(rho, oneoverdx)
         
         # B.C. like A. Escriva does ... 
-        drhodr[:num_ghosts+1] = 0
-        drhodr[-num_ghosts-1:] = 0
+        drhodr[:num_ghosts+1] = drhodr[num_ghosts+2]
+        drhodr[-num_ghosts-1:] = drhodr[-num_ghosts-2]
 
  
 
@@ -175,7 +180,7 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_bar, t
         Gamma = get_Gamma(U[ix], R[ix], M[ix])
         
         # Get the Misner-sharp rhs 
-        rhs_U[ix]     =  get_rhs_U(U[ix], M[ix], R[ix], rho[ix], drhodr[ix], dRdr[ix], A, Gamma, omega)
+        rhs_U[ix]     =  get_rhs_U(U[ix], M[ix], R[ix], rho[ix], dRdr[ix], drhodr[ix], A, Gamma, omega)
         
         rhs_R[ix]     =  get_rhs_R(U[ix], A)
         
@@ -225,7 +230,7 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_bar, t
     # see gridfunctions for these, or https://github.com/KAClough/BabyGRChombo/wiki/Useful-code-background
     
     # overwrite outer boundaries with extrapolation (order specified in uservariables.py)
-    fill_outer_boundary(current_state, dx, N, r_is_logarithmic)
+    # fill_outer_boundary(current_state, dx, N, r_is_logarithmic)
     fill_outer_boundary(rhs, dx, N, r_is_logarithmic)
     
     # rm = get_rm()
@@ -234,7 +239,7 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_bar, t
 
     # overwrite inner cells using parity under r -> - r
     fill_inner_boundary(current_state, dx, N, r_is_logarithmic)
-    fill_inner_boundary(rhs, dx, N, r_is_logarithmic)
+    # fill_inner_boundary(rhs, dx, N, r_is_logarithmic)
     
     # t5 = time.time()
     # print("Fill boundaries done in ", t5 - t4) 

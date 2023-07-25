@@ -49,7 +49,7 @@ def par_compute_rhs_idx(ix):
 	Gamma = get_Gamma(sh_U[ix], sh_R[ix], sh_M[ix])
 	
 	# Get the Misner-sharp rhs 
-	sh_rhs_U[ix]     =  get_rhs_U(sh_U[ix], sh_M[ix], sh_R[ix], sh_rho[ix], sh_drhodr[ix], sh_dRdr[ix], A, Gamma, omega)
+	sh_rhs_U[ix]     =  get_rhs_U(sh_U[ix], sh_M[ix], sh_R[ix], sh_rho[ix], sh_dRdr[ix], sh_drhodr[ix], A, Gamma, omega)
 	
 	sh_rhs_R[ix]     =  get_rhs_R(sh_U[ix], A)
 	
@@ -87,6 +87,12 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_bar, t
     # Unpack variables from current_state - see uservariables.py
     ### u, v , phi, hrr, htt, hpp, K, arr, att, app, lambdar, shiftr, br, lapse = unpack_state(current_state, N_r) 
     U, R, M, rho = unpack_state(current_state, N_r) 
+    
+    
+    rho_bkg = get_rho_bkg(t_i/t_ini, rho_bkg_ini)
+    rho[-num_ghosts-1:] = rho_bkg
+    if np.sum(rho<0) >0 : print("  WARNING rho become negative, set to min rho.")
+    rho[rho<0] = rho_bkg
     
     
     sh_r[:] = r[:]
