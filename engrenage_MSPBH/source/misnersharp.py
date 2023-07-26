@@ -8,7 +8,7 @@ from  source.gridfunctions import num_ghosts
 
 
 print_Gamma_set_zero = 0
-
+print_A_set_one = 0
 
 
 def get_rho_bkg(t_over_t_ini, rho_bkg_ini):
@@ -18,10 +18,13 @@ def get_rho_bkg(t_over_t_ini, rho_bkg_ini):
 
 def get_A(rho, rho_bkg, omega): 
 	
+	
+	if rho < 0: rho = rho_bkg
+	
 	A = (rho_bkg/rho)**(omega/(omega+1))
 	
 	if A!=A:
-		print("A imposed 1!! with", rho_bkg, rho, omega  )
+		if print_A_set_one: print("A imposed 1!! with", rho_bkg, rho, omega  )
 		A = 1
 	
 	return A
@@ -79,7 +82,7 @@ def get_rhs_rho(U, R, rho, dUdr, dRdr, A, omega):
 	
 	# drhodt = - A*rho*(1+omega)*(2*U/R + dUdr/dRdr)
 	
-	fraction = dUdr/ (dRdr + 0.01)
+	fraction = dUdr/ (dRdr) if np.abs(dRdr) >1e-4 else - 2*U/R
 	
 	drhodt = - A*rho*(1+omega)*(2*U/R + fraction)
 	
@@ -96,6 +99,38 @@ def get_omega():
 	
 	omega = 1./3.
 	return omega
+
+
+##########################################################################
+### FRW and other quantities
+############################################
+
+
+def get_scalefactor(t, omega, a_ini, t_ini):
+
+	alpha = 2./(3.*(1.+omega))
+	a = a_ini*(t/t_ini)**alpha 
+	return a 
+
+def get_Hubble(t, omega, t_ini=1):
+	
+	alpha = 2./(3.*(1.+omega))
+	Hubble = alpha/(t/t_ini)
+	return Hubble
+	
+def get_rho_bkg(t_over_t_ini, rho_bkg_ini):
+	# Assumes FLRW evolution
+	rho_bkg = rho_bkg_ini * t_over_t_ini**(-2)
+	return rho_bkg
+	
+
+
+
+##################################################
+
+def compact_function(M, R, rho_bkg):
+	C =  2*M/R  - (8./3.)*np.pi*rho_bkg * R**2 
+	return C
 
 
 

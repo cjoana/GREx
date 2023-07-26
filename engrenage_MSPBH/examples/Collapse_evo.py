@@ -21,12 +21,10 @@ from source.initialdata import *              # go here to change the initial co
 # from source.hamdiagnostic import *  
 
 # Input parameters for grid and evolution here
-N_r = 1000 # num points on physical grid
+N_r = 600 # num points on physical grid
 # R_max = 300.0 * 0.5 # Maximum outer radius
 
 
-
-##################3
 omega = 1./3
 
 t_ini = 1
@@ -36,7 +34,9 @@ rho_bkg_ini = 3./(8.*np.pi) *H_ini**2
 a_ini = 1
 # R_max = 150 * H_ini
 
-R_max = 200 * H_ini
+# R_max = 400 * H_ini
+
+from source.initialdata import R_max
 
 # nu = 0.9
 # fNL = -1
@@ -84,12 +84,17 @@ if True:
 	# f_t = 2*M/R
 	f_t = C
 	
-	r_over_rm = r/rm
+	r_over_rm = r /rm
 	
 	ln = len(r)
 	ax = axs[0,0]
-	ax.plot(r_over_rm[:], f_t[:])
-	ax.set_ylim(-2,3)
+	ax.plot(r_over_rm[:], f_t[:],'k')
+	#
+	Rprime_over_a_ezeta = ( 1 + r * get_dzetadr(r) ) 
+	C_v2 = 3*(1+omega)/(5+3*omega) *( 1 - Rprime_over_a_ezeta**2)
+	ax.plot(r_over_rm[:], C_v2, 'r--')
+	#
+	ax.set_ylim(-2,1.5)
 	ax.set_ylabel('C')
 	ax.set_xlim(0,3)
 	
@@ -105,6 +110,12 @@ if True:
 	ax = axs[1,0]
 	f_t = R
 	ax.plot(r_over_rm[:], f_t[:])
+	#
+	R_v2 = get_expansion_R(t_ini, r, rm, omega, 0, t_ini=1)
+	zeta = get_zeta(r)
+	R_v2 = a_ini * np.exp(zeta) *r
+	ax.plot(r_over_rm[:], R_v2, 'r--')
+	#
 	ax.set_ylim(0.1,1e4)
 	# ax.set_xscale('log')
 	ax.set_yscale('log')
@@ -129,7 +140,6 @@ if True:
 	
 	ax = axs[1,2]
 	f_t = rho
-
 	ax.plot(r_over_rm[:], f_t[:])
 	# rho_check = dMdr/(dRdr* 4*np.pi*R**2 +1e-5)
     # ax.plot(r_over_rm, rho_check)
@@ -142,21 +152,34 @@ if True:
 	ax = axs[0,3]
 	f_t = dRdr
 	ax.plot(r_over_rm[:], f_t[:])
+	#
+	Rprime = ( 1 + r * get_dzetadr(r) ) * a_ini * np.exp(get_zeta(r))      # R = a ezeta(r) * r ,   Rprime =  a ezeta r zetaprime + a ezeta = (1 + r zetaprime) * a ezeta
+	ax.plot(r_over_rm[:], Rprime, 'r--')
+	#
 	# ax.set_ylim(0.1,1e4)
 	ax.set_ylabel('dRdr')
 	ax.set_xlabel('r')
 	# ax.set_xscale('log')
 	ax.set_yscale('log')
 	ax.set_xlim(0,8)
-	
-	
+		
 	ax = axs[1,3]
 	f_t = Ham
 	ax.plot(r_over_rm[:], f_t[:])
-	# ax.set_ylim(0.1,1e4)
 	ax.set_ylabel('Ham')
-	# ax.set_xscale('log')
 	ax.set_yscale('log')
+		
+	# ax = axs[1,3]
+	# zeta = get_zeta(r)
+	# p_zeta =  get_dzetadr(r) 
+	# pp_zeta =  get_d2zetadr2(r) 
+	# #
+	# ax.plot(r_over_rm[:], zeta, 'b-')
+	# ax.plot(r_over_rm[:], p_zeta, 'r-')
+	# ax.plot(r_over_rm[:], pp_zeta, 'g-')
+	# ax.set_ylabel('zeta, zeta_prime')
+	# # ax.set_xlim(0,1)
+	# # ax.set_yscale('log')
 	
 	plt.tight_layout()
 	plt.savefig('initial_data_example.png', dpi=100)
@@ -251,24 +274,23 @@ start = time.time()
 # for control of time integrator and spatial grid
 t_ini = 1.0 
 dx = R_max/N_r
-dt_multiplier = 0.01
+dt_multiplier = 0.001
 dt = dx * dt_multiplier
 N_t = 10000
 T  = t_ini + dt * N_t
+# T = 10*n_Horizons
 # T = 2.0 # Maximum evolution time
 # N_t = 10 # time resolution (only for outputs, not for integration)
 
 # Work out dt and time spacing of outputs
 # dt = T/N
-num_tslides = 5
-t_sol = np.linspace(t_ini, T-5*dt, num_tslides)
 
-sigma = 0.1/ dt_multiplier # kreiss-oliger damping coefficient, max_step should be limited to 0.1 R_max/N_r  
+sigma = 1./ dt_multiplier # kreiss-oliger damping coefficient, max_step should be limited to 0.1 R_max/N_r  
 # if(max_step > R_max/N_r/sigma): print("WARNING: kreiss oliger condition not satisfied!")
 
 
 print("initial params:")
-print(f" R_max = {R_max}\n N_r = {N_r}\n dx = {dx}\n dt = {dt}\n N_t ={N_t}\n T = {T}\n rm ={rm}\n rho_bkg_ini = {rho_bkg_ini}")
+print(f" R_max = {R_max}\n N_r = {N_r}\n dx = {dx}\n dt = {dt}\n N_t ={N_t}\n T = {T}\n rm ={rm}\n rho_bkg_ini = {rho_bkg_ini}\n num Horizons = {n_Horizons}")
 
 
 # raise()
@@ -279,18 +301,24 @@ print(f" R_max = {R_max}\n N_r = {N_r}\n dx = {dx}\n dt = {dt}\n N_t ={N_t}\n T 
 with tqdm(total=N_t, unit=" ") as progress_bar:
     dense_solution = solve_ivp(get_rhs, [t_ini,T], initial_state, 
                                args=(R_max, N_r, r_is_logarithmic, sigma, progress_bar, [t_ini, dt]),
-                        #atol=1e-5, rtol=1e-5,
+                        atol=1e-8, rtol=1e-6,
                         max_step= dt, #for stability and for KO coeff of 10
-                        method='RK45',
-                        # method='LSODA',
+                        # method='RK45',
+                        method='LSODA',
                         dense_output=True)
 
 # Interpolate the solution at the time points defined in myparams.py
+num_tslides = 5
+t_out = dense_solution.t
+t_sol = np.linspace(t_out[0], t_out[-1], num_tslides)
+
 solution = dense_solution.sol(t_sol).T
 
 end = time.time() 
 
 print(f"Time needed for evolution {end-start} seconds.")
+print(dense_solution.message)
+print("\n status \n ", dense_solution.status)
 
 
 
@@ -333,14 +361,14 @@ if True:
 	
 	t = t_sol
 	
-	xmin, xmax = [0,4]
+	
 	
 	fig, axs = plt.subplots(2,4, figsize=(17,8))
 	
 	for i, t_i in enumerate(t) :
 		# if not (i%5 ==0) : continue
 		# if t_i < t_ini : continue
-		labelt = "t="+str(round(t_i,2))
+		labelt = "t="+str(round(t_i/(rm**2/4),2))+r" $t_H$"
 		
 		vars_vec = solution[i,:]
 		U, R, M, rho = unpack_state(vars_vec, N_r)
@@ -364,44 +392,46 @@ if True:
 		f_t = C
 		
 		r_over_rm = r/rm
-		
+		xmin, xmax = [r_over_rm[0]  ,r_over_rm[-4]]
+		mask = (r_over_rm)<8
+				
 		ln = len(r)
 		ax = axs[0,0]
-		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
 		ax.set_ylim(-2,3)
 		ax.set_ylabel('C')
-		ax.set_ylim(xmin,xmax)
+		ax.set_xlim(xmin,xmax)
 		
 		ax = axs[0,1]
 		f_t = 2*M/R
-		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
 		ax.set_ylim(0,1.5)
 		ax.set_xlim(0,1.5)
 		ax.legend()
 		ax.set_ylabel('M/R')
-		ax.set_ylim(xmin,xmax)
+		ax.set_xlim(xmin,xmax)
 		
 		ax = axs[1,0]
 		f_t = R
-		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
 		ax.set_ylim(0.1,1e4)
 		# ax.set_xscale('log')
 		ax.set_yscale('log')
 		ax.set_ylabel('R')
-		ax.set_ylim(xmin,xmax)
+		ax.set_xlim(xmin,xmax)
 		
 		
 		ax = axs[1,1]
 		f_t = U
-		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
 		# ax.set_ylim(0.1,1e4)
 		# ax.set_yscale('log')
 		ax.set_ylabel('U')
-		ax.set_ylim(xmin,xmax)
+		ax.set_xlim(xmin,xmax)
 		
 		ax = axs[0,2]
-		f_t = M
-		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		f_t = np.abs(M)
+		ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
 		# ax.set_ylim(0.1,1e4)
 		# ax.set_xscale('log')
 		ax.set_yscale('log')
@@ -411,36 +441,36 @@ if True:
 		f_t = rho
 		# rho_check = dMdr/dRdr / (4*np.pi*R**2)
 		
-		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
 		# ax.plot(r_over_rm, rho_check, label=labelt)
 		# ax.set_ylim(0.1,1e4)
 		ax.set_ylabel('rho')
 		# ax.set_xscale('log')
 		ax.set_yscale('log')
-		ax.set_ylim(xmin,xmax)
+		ax.set_xlim(xmin,xmax)
 		
 		
 		ax = axs[0,3]
-		f_t = rho
+		f_t = (rho - rho_bkg)/rho_bkg
 		# rho_check = dMdr/dRdr / (4*np.pi*R**2)
 		
-		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
 		# ax.plot(r_over_rm, rho_check, label=labelt)
 		# ax.set_ylim(0.1,1e4)
 		ax.set_ylabel('rho')
 		# ax.set_xscale('log')
 		# ax.set_yscale('log')
-		ax.set_ylim(xmin,xmax)
+		ax.set_xlim(xmin,xmax)
 		
 		
 		ax = axs[1,3]
 		f_t = Ham
-		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
 		# ax.set_ylim(0.1,1e4)
 		ax.set_ylabel('Ham')
 		# ax.set_xscale('log')
 		ax.set_yscale('log')
-		ax.set_ylim(xmin,xmax)
+		ax.set_xlim(xmin,xmax)
 		
 				
 		
@@ -485,62 +515,64 @@ if True:
 		
 		# f_t = 2*M/R
 		f_t = dUdr
-		
+				
 		r_over_rm = r/rm
+		
+		
 		
 		ln = len(r)
 		ax = axs[0,0]
-		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
 		# ax.set_ylim(-2,3)
 		ax.set_ylabel('dUdr')
 		
 		ax = axs[0,1]
 		f_t = dMdr
-		ax.plot(r_over_rm[:], f_t[:], label=labelt)
-		ax.set_ylim(xmin,xmax)
+		ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
+		ax.set_xlim(xmin,xmax)
 		# ax.set_xlim(0,1.5)
 		ax.legend()
 		ax.set_ylabel('dMdr')
 		
 		ax = axs[1,0]
 		f_t = dRdr
-		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
 		# ax.set_ylim(0.1,1e4)
 		# ax.set_xscale('log')
 		# ax.set_yscale('log')
 		ax.set_ylabel('dRdr')
-		ax.set_ylim(xmin,xmax)
+		ax.set_xlim(xmin,xmax)
 		
 		
 		ax = axs[1,1]
 		f_t = drhodr
-		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
 		# ax.set_ylim(0.1,1e4)
 		# ax.set_yscale('log')
 		ax.set_ylabel('drhodr')
-		ax.set_ylim(xmin,xmax)
+		ax.set_xlim(xmin,xmax)
 		
 		ax = axs[1,2]
 		f_t = rho
-		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
 		# ax.set_ylim(0.1,1e4)
 		# ax.set_yscale('log')
 		ax.set_ylabel('rho')
-		ax.set_ylim(xmin,xmax)
+		ax.set_xlim(xmin,xmax)
 
 
 		rho_bkg = get_rho_bkg(t_i, rho_bkg_ini)
 		A = np.array([ get_A(rho[ii], rho_bkg, omega) for ii, rrr in enumerate(rho)]) 
 		Gamma =  np.array([ get_Gamma(U[ii], r[ii], M[i]) for ii, rrr in enumerate(U)])  
-		rhs_rho  =  get_rhs_rho(U, R, rho, dUdr, dRdr, A, omega)
+		rhs_rho  = np.array([ get_rhs_rho(U[ii], R[ii], rho[ii], dUdr[ii], dRdr[ii], A[ii], omega) for ii, rrr in enumerate(U)])  
 		
 		ax = axs[0,2]
 		f_t = rhs_rho
-		ax.plot(r_over_rm[:], f_t[:], label=labelt)
+		ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
 		# ax.set_ylim(0.1,1e4)
 		# ax.set_yscale('log')
 		ax.set_ylabel('rhs rho')
-		ax.set_ylim(xmin,xmax)
+		ax.set_xlim(xmin,xmax)
 
 		
 		

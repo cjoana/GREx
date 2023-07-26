@@ -72,3 +72,22 @@ def get_dissipation(f, oneoverdx, sigma) :
         
     return oneoverdx * sigma * diss_x
 
+def ch_matrix(Ncheb, a, b):
+
+	Ncheb = Ncheb -1
+	
+	range_cheb = np.arange(0,Ncheb+1)
+	
+	x = np.cos(np.pi*range_cheb/Ncheb)
+	t = 0.5*(a+b) - 0.5*(a-b)*x
+	
+	carray = np.hstack([2, np.ones(Ncheb - 1), 2])  * (-1)**range_cheb
+	
+	X = np.tile(x, (Ncheb+1,1) )
+	dX = X.T - X
+	
+	Dp = (carray[:,np.newaxis]*(1.0/carray)[np.newaxis,:])/(dX + np.identity(Ncheb+1) )       
+	Dp = Dp - np.diag(Dp.sum(axis=1))            
+	Dcheb = Dp * 2/(b-a)
+
+	return Dcheb, t

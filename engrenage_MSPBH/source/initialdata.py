@@ -27,26 +27,30 @@ H_ini = alpha/t_ini
 rho_bkg_ini = 3./(8.*np.pi) *H_ini**2
 a_ini = 1
 
-R_max = 200 * H_ini
+R_max = 800 * H_ini
 
-nu = 0.1
+nu = 0.9
 fNL = -1
-n_Horizons = 10
+n_Horizons =  20
 #k_star = 1./(n_Horizons*H_ini)
 
-k_star = (n_Horizons/H_ini/2.7471)**-1 
+k_star = (n_Horizons/H_ini/2.7471)**-1  
 
 # print(f'H_ini in {H_ini}')
 
+##########################################################
+### Curvature perturb.  Long wave limit 
 
-
-
+def MySinc(x): 
+	return np.sin(x)/x
 
 def get_zeta(r):  # curvature 
-	x = r
-	k = k_star
-	
-	zeta =  nu * np.sinc(k*x) + 3./5*fNL*nu**2 * (np.sinc(k*x))**2
+	x = r    
+	k = k_star	
+	A = nu
+	B = 3./5*fNL*nu**2
+		
+	zeta =  nu * MySinc(k*x) + B * (MySinc(k*x))**2 
 	return zeta
 	
 def get_dzetadr(r):  # d/dr curvature 
@@ -54,15 +58,14 @@ def get_dzetadr(r):  # d/dr curvature
 	A = nu
 	B = 3/5*fNL*nu**2
 	k = k_star 
-	x = r
+	x = r     
 	
-	dr_zeta = ((k*x*np.cos(k*x) - np.sin(k*x)) * \
-			  (A + 2*B*np.sinc(k*x)))/(k*x**2)
+	dr_zeta =  (k*x*np.cos(k*x) - np.sin(k*x)) * (A + 2*B*MySinc(k*x)) /  (k*x**2)
 		
 	""" 
 	Wolfram alpha: 
-	d/dx(A sinc(x k) + B sinc(x k)^2) = 
-			((k x cos(k x) - sin(k x)) (A + 2 B sinc(k x)))/(k x^2)
+	d/dx(A MySinc(x k) + B MySinc(x k)^2) = 
+			((k x cos(k x) - sin(k x)) (A + 2 B MySinc(k x)))/(k x^2)
 	"""			
 	
 	return dr_zeta
@@ -76,53 +79,28 @@ def get_d2zetadr2(r):  # d2/dr2 curvature
 	
 	d2dr2_zeta =  A * k * ((2.* np.sin(k * x))/(k**2 * x**3) - \
 				  (2.* np.cos(k*x))/(k*x**2) -  np.sin(k*x)/x) + \
-				  B*(2.*k * np.sinc(k*x) * ((2*np.sin(k*x))/(k**2*x**3) - \
+				  B*(2.*k * MySinc(k*x) * ((2*np.sin(k*x))/(k**2*x**3) - \
 				  (2*np.cos(k*x))/(k*x**2) - np.sin(k*x)/x) +  \
 				  2.*k**2 * (np.cos(k*x)/(k*x) - np.sin(k*x)/(k**2*x**2))**2)
 				  
 				  
 	""" 
 	Wolfram alpha: 
-	d^2/dx^2(A sinc(x k) + B sinc(x k)^2) = 
+	d^2/dx^2(A MySinc(x k) + B MySinc(x k)^2) = 
 		A k ((2 sin(k x))/(k^2 x^3) 
 		- (2 cos(k x))/(k x^2) - sin(k x)/x) 
-		+ B (2 k sinc(k x) ((2 sin(k x))/(k^2 x^3)
+		+ B (2 k MySinc(k x) ((2 sin(k x))/(k^2 x^3)
 		- (2 cos(k x))/(k x^2) - sin(k x)/x) 
 		+ 2 k^2 (cos(k x)/(k x) - sin(k x)/(k^2 x^2))^2)
+		
+
 	"""
 	
 	return d2dr2_zeta
 
-	
-def get_L_pert(a, rm):
-	
-	zeta_at_rm = get_zeta(rm)
-	L = a * rm * np.exp(zeta_at_rm)
-	return L 
-	
-def get_epsilon(H, L):
-	
-	epsilon = 1/(H*L)
-	return epsilon 
 
-def get_scalefactor(t, omega):
-
-	alpha = 2./(3.*(1.+omega))
-	a = a_ini*(t/t_ini)**alpha 
-	return a 
-
-def get_Hubble(t, omega):
-	
-	alpha = 2./(3.*(1.+omega))
-	Hubble = alpha/t
-	return Hubble
-	
-def get_rho_bkg(t_over_t_ini, rho_bkg_ini):
-	# Assumes FLRW evolution
-	rho_bkg = rho_bkg_ini * t_over_t_ini**(-2)
-	return rho_bkg
-	
-
+#####################################################################
+############### Gradient expansion pert. ~  tildes
 # Pertrubative equations (tildes) for initial data
 
 
@@ -135,8 +113,22 @@ def get_tilde_rho(r, rm, omega):
 	exp_ratio = np.exp(2*zeta_rm) / np.exp(2*zeta )
 	
 	trho  = - 2*(1+omega)/(5+3*omega) * exp_ratio * ( \
-	        # d2dr2_zeta + dzetadr * (2/r + 0.5*dzetadr) *rm**2 )    ## the position of rm^2 varies in Escriva and Musco papers  # A. Escriva 2202.01028.pdf
-			d2dr2_zeta + dzetadr * (2/r + 0.5*dzetadr) ) *rm**2      ##   Musco  1809.02127.pdf
+	        d2dr2_zeta + dzetadr * (2/r + 0.5*dzetadr) *rm**2 )        ## the position of rm^2 varies in Escriva and Musco papers  # A. Escriva 2202.01028.pdf
+			# d2dr2_zeta + dzetadr * (2/r  + 0.5*dzetadr) ) *rm**2         ##   Musco  1809.02127.pdf
+	
+	return trho 
+	
+def get_tilde_rho_altern(r, rm, omega, tilde_U, dr_tildeU):
+	
+	zeta_rm = get_zeta(rm)
+	zeta = get_zeta(r)
+	dzetadr = get_dzetadr(r)
+
+	func =  ( 3*tilde_U*dzetadr + dr_tildeU)
+	
+	trho = -(1+omega) / (1+r*dzetadr) * func
+	
+
 	
 	return trho
 	
@@ -175,36 +167,34 @@ def get_tilde_R(r, rm, omega):
 			  
 	return tilde_R
 	
-# initial data functions 
+#####################################################################
+############### Gradient expansion total 	
+# initial data functions  
 
-def get_expansion_R(t, r, rm, omega, epsilon):
-	
-	
-	
-	a = get_scalefactor(t, omega)
-	
+def get_expansion_R(t, r, rm, omega, epsilon, t_ini=1):
 		
-	tilde_R = get_tilde_R(r, rm, omega) 
-	zeta = get_zeta(r)
+	a = get_scalefactor(t, omega, a_ini, t_ini)
 	
+	tilde_R = get_tilde_R(r, rm, omega) 	
+	zeta = get_zeta(r) 
 	
-	out_R =  a * np.exp(zeta) * r *  (1 + epsilon**2 * tilde_R)  
+	out_R =  a * np.exp(zeta) * r   * (1 + epsilon**2 * tilde_R)  					
 	
 	# print("a ini" , a)
 	return out_R  ##
 	
-def get_expansion_U(t, r, rm, omega, epsilon):
+def get_expansion_U(t, r, rm, omega, epsilon, t_ini=1):
 	
-	H = get_Hubble(t, omega)
+	H = get_Hubble(t, omega, t_ini)
 	tilde_U = get_tilde_U(r, rm, omega)
-	R = get_expansion_R(t, r, rm, omega, epsilon)
+	R = get_expansion_R(t, r, rm, omega, epsilon, t_ini)
 	
 	out_U = H*R * (1 + epsilon**2 * tilde_U)
 	
 	# print("H ini" , H)
 	return out_U
 	
-def get_expansion_rho(t, r, rm, omega, epsilon):
+def get_expansion_rho(t, r, rm, omega, epsilon, t_ini=1):
 	
 	t_over_t_ini = t/t_ini
 	rho_bkg = get_rho_bkg(t_over_t_ini, rho_bkg_ini)
@@ -214,13 +204,24 @@ def get_expansion_rho(t, r, rm, omega, epsilon):
 	return out_rho
 
 
-def get_expansion_M(t, r, rm, omega, epsilon):
+def get_expansion_rho_altern(t, r, rm, omega, epsilon, U, dU, t_ini=1):
+	
+	t_over_t_ini = t/t_ini
+	rho_bkg = get_rho_bkg(t_over_t_ini, rho_bkg_ini)
+	tilde_rho = get_tilde_rho_altern(r, rm, omega, U, dU)
+	
+	out_rho = rho_bkg * (1 + epsilon**2 * tilde_rho)
+	return out_rho
+
+
+def get_expansion_M(t, r, rm, omega, epsilon, t_ini=1):
 	
 	t_over_t_ini = t/t_ini
 	rho_bkg = get_rho_bkg(t_over_t_ini, rho_bkg_ini)
 
-	R = get_expansion_R(t, r, rm, omega, epsilon)
 	tilde_M = get_tilde_M(r, rm, omega)
+	R = get_expansion_R(t, r, rm, omega, epsilon, t_ini)
+	
 	
 	# rho_bkg = 1
 	
@@ -228,55 +229,68 @@ def get_expansion_M(t, r, rm, omega, epsilon):
 	return out_M		
 
 
-
-def compact_function(M, R, rho_bkg):
-	C =  2*M/R  - (8./3.)*np.pi*rho_bkg * R**2 
-	return C
+################################################################
 
 
 def get_rm(print_out=0):
-	
+		
 	def _root_func(r) :
 		dz = get_dzetadr(r)
 		ddz = get_d2zetadr2(r)
 		
 		return dz + r * ddz
+	try:
+			
+		a, b = [n_Horizons/H_ini, 100]
+		xs = np.linspace(a, b, 100)
+		ys = _root_func(xs)
+		sa = np.sign(ys[0])
+		idx = np.where( np.sign(ys)*sa < 0)[0] 
+		b = xs[idx][0]	
 		
-	a, b = [n_Horizons/H_ini, 100]
-	xs = np.linspace(a, b, 100)
-	ys = _root_func(xs)
-	sa = np.sign(ys[0])
-	idx = np.where( np.sign(ys)*sa < 0)[0] 
-	b = xs[idx][0]	
-	
-	# rm = opt.bisect(_root_func, 1e-3, R_max)
-	rm = opt.brentq(_root_func, a, b)
-	# print(f"rm is {rm}")
-	
-	L = get_L_pert(1, rm)
-	eps = get_epsilon(H_ini, L)
-	if print_out: print(f"epsilon is {eps}, rm is {rm}")
+		# rm = opt.bisect(_root_func, 1e-3, R_max)
+		rm = opt.brentq(_root_func, a, b)
+		# print(f"rm is {rm}")
+	except:
+		rm = a
+		
+	if print_out: 
+		L = get_L_pert(1, rm)
+		eps = get_epsilon(H_ini, L)
+		print(f"epsilon is {eps}, rm is {rm}")
 
-	
-	
 	return rm 
 
 
 def get_expansion_Compaction(r, omega):
+	
 	dzeta = get_dzetadr(r)
 	C = 3 * (1+omega)/(5+3*omega) * (1 - (1 + r*dzeta)**2) 
 	return C
 	
 	
+def get_L_pert(a, rm):
+	
+	zeta_at_rm = get_zeta(rm)
+	L = a * rm * np.exp(zeta_at_rm)
+	return L 
+	
+def get_epsilon(H, L):
+	
+	epsilon = 1/(H*L)
+	return epsilon 
+	
+	
+##############################################################
 
 
 # Function to get initial state 
 
-def get_initial_state(R_max, N_r, r_is_logarithmic) :
+def get_initial_state(R_max, N_r, r_is_logarithmic, t_ini=1) :
     
     # Set up grid values
     dx, N, r, logarithmic_dr = setup_grid(R_max, N_r, r_is_logarithmic)
-       
+
     
     # predefine some userful quantities
     oneoverlogdr = 1.0 / logarithmic_dr
@@ -286,27 +300,38 @@ def get_initial_state(R_max, N_r, r_is_logarithmic) :
     
     initial_state = np.zeros(NUM_VARS * N)
     
+    
+    rm = get_rm() ##########################
+    omega = get_omega() 
+    Hubble = get_Hubble(t_ini, omega) 
+    L_pert = get_L_pert(a_ini, rm) 
+    epsilon = get_epsilon(Hubble,L_pert)                                   #####  if * 0, solution only at first order 
+    
+    	
+	
+    # U_tilde = get_tilde_U(r, rm, omega)            #################
+    # dtildeUdr = get_dfdx(U_tilde, oneoverdx)
    
     # fill all positive values of r
     # for ix in range(num_ghosts, N):
     for ix in range(0, N):
 
         # position on the grid
-        r_i = r[ix]
-        
-        
-        rm = get_rm() ####
-        omega = get_omega() 
-        Hubble = get_Hubble(t_ini, omega) 
-        L_pert = get_L_pert(a_ini, rm) 
-        epsilon = get_epsilon(Hubble,L_pert)
-		
+        r_i = r[ix]   
 
         # initial values
-        initial_state[ix + idx_U * N] = get_expansion_U(t_ini, r_i, rm, omega, epsilon)
-        initial_state[ix + idx_R * N] = get_expansion_R(t_ini, r_i, rm, omega, epsilon)
-        initial_state[ix + idx_M * N] = get_expansion_M(t_ini, r_i, rm, omega, epsilon)
-        initial_state[ix + idx_rho * N] = get_expansion_rho(t_ini, r_i, rm, omega, epsilon)
+        initial_state[ix + idx_U * N] = get_expansion_U(t_ini, r_i, rm, omega, epsilon																		
+					, t_ini)
+        initial_state[ix + idx_R * N] = get_expansion_R(t_ini, r_i, rm, omega, epsilon																
+					, t_ini)
+        initial_state[ix + idx_M * N] = get_expansion_M(t_ini, r_i, rm, omega, epsilon																
+					, t_ini)
+        initial_state[ix + idx_rho * N] = get_expansion_rho(t_ini, r_i, rm, omega, epsilon																		
+				, t_ini)
+        # initial_state[ix + idx_rho * N] = get_expansion_rho_altern(t_ini, r_i, rm, omega, epsilon, U_tilde[ix], dtildeUdr[ix])
+     
+    
+      
         
     print(f' epsilon is {epsilon}')
 
