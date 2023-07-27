@@ -274,9 +274,9 @@ start = time.time()
 # for control of time integrator and spatial grid
 t_ini = 1.0 
 dx = R_max/N_r
-dt_multiplier = 0.001
+dt_multiplier = 0.01
 dt = dx * dt_multiplier
-N_t = 10000
+N_t = 50000
 T  = t_ini + dt * N_t
 # T = 10*n_Horizons
 # T = 2.0 # Maximum evolution time
@@ -301,10 +301,11 @@ print(f" R_max = {R_max}\n N_r = {N_r}\n dx = {dx}\n dt = {dt}\n N_t ={N_t}\n T 
 with tqdm(total=N_t, unit=" ") as progress_bar:
     dense_solution = solve_ivp(get_rhs, [t_ini,T], initial_state, 
                                args=(R_max, N_r, r_is_logarithmic, sigma, progress_bar, [t_ini, dt]),
-                        atol=1e-8, rtol=1e-6,
+                        # atol=1e-8, rtol=1e-6,
+                        atol=1e-80, rtol=1e-60,
                         max_step= dt, #for stability and for KO coeff of 10
-                        # method='RK45',
-                        method='LSODA',
+                        method='RK45',
+                        # method='LSODA',
                         dense_output=True)
 
 # Interpolate the solution at the time points defined in myparams.py
@@ -368,7 +369,7 @@ if True:
 	for i, t_i in enumerate(t) :
 		# if not (i%5 ==0) : continue
 		# if t_i < t_ini : continue
-		labelt = "t="+str(round(t_i/(rm**2/4),2))+r" $t_H$"
+		labelt = "t="+str(round(t_i,2))
 		
 		vars_vec = solution[i,:]
 		U, R, M, rho = unpack_state(vars_vec, N_r)
@@ -497,7 +498,7 @@ if True:
 	for i, t_i in enumerate(t) :
 		# if not (i%5 ==0) : continue
 		# if t_i < t_ini : continue
-		labelt = "t="+str(round(t_i,2))
+		labelt = "t="+str(round(t_i/(rm**2/4),2))+r" $t_H$"
 		
 		vars_vec = solution[i,:]
 		U, R, M, rho = unpack_state(vars_vec, N_r)
