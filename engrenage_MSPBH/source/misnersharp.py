@@ -39,6 +39,7 @@ def get_B(U, R, M, dRdr):
 def get_Gamma(U, R, M):
 	
 	disc = 1 + U**2 - 2*M/R
+	disc = disc if disc==disc else 0
 	
 	if disc <0: 
 		# print("Gamma imposed zero!! with U,M, R ", U, M, R, "and U**2, 2M/R, diff ", U**2, 2*M/R,  U**2 - 2*M/R,  )
@@ -46,13 +47,17 @@ def get_Gamma(U, R, M):
 		disc = 0
 		Gamma = 0
 	else: Gamma = np.sqrt(disc)
-			
+
 	return Gamma
 	
 
 # RHS equations 
 	
 def get_rhs_U(U, M, R, rho, dRdr, drhodr, A, Gamma, omega):
+	
+	
+	frac1 = M/R**2
+	frac2 = (drhodr * Gamma**2)/(rho * dRdr )
 	
 	dUdt = - A * ( omega/(omega+1) * (drhodr * Gamma**2)/(rho * dRdr) + M/R**2 + 4*np.pi*R*omega*rho)
 	
@@ -70,6 +75,8 @@ def get_rhs_U(U, M, R, rho, dRdr, drhodr, A, Gamma, omega):
 	
 	dUdt = np.real(dUdt)
 	
+	dUdt = dUdt if dUdt==dUdt else 0
+	
 	return dUdt
 	
 def get_rhs_R(U, A):
@@ -86,12 +93,16 @@ def get_rhs_rho(U, R, rho, dUdr, dRdr, A, omega):
 	
 	drhodt = - A*rho*(1+omega)*(2*U/R + fraction)
 	
+	drhodt = drhodt if drhodt==drhodt else 0
+	
 	return drhodt
 
 
 def get_rhs_M(U, R, rho, A, omega):
 	
 	dMdt = - 4*np.pi*A*omega*rho*U*R**2
+	
+	dMdt = dMdt if dMdt==dMdt else 0
 	return dMdt
 
 

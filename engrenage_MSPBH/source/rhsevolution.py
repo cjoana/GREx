@@ -41,15 +41,17 @@ def get_rhs(t_i, current_state, R_max, N_r, r_is_logarithmic, sigma, progress_ba
     #unpackage the state vector for readability - these are the vectors of values across r values at time t_i
     # see uservariables.py for naming conventions
     
+    fill_outer_boundary(current_state, dx, N, r_is_logarithmic)
+    
     # Unpack variables from current_state - see uservariables.py
     ### u, v , phi, hrr, htt, hpp, K, arr, att, app, lambdar, shiftr, br, lapse = unpack_state(current_state, N_r) 
     U, R, M, rho = unpack_state(current_state, N_r) 
     
     
-    # B.C. like Albert does... 
-    U[-num_ghosts:] = 0
-    M[-num_ghosts:] = 0
-    R[-num_ghosts:] = 0
+    # # B.C. . 
+    U[-num_ghosts:] = U[-num_ghosts-1]
+    M[-num_ghosts:] = M[-num_ghosts-1]
+    R[-num_ghosts:] = R[-num_ghosts-1]
     
            
     # t0 = time.time()
@@ -131,6 +133,14 @@ def get_rhs(t_i, current_state, R_max, N_r, r_is_logarithmic, sigma, progress_ba
 
 	# Boundary conditions at the end
     rhs_rho[-num_ghosts:] = 0
+    rhs_U[-num_ghosts:] = 0
+    rhs_R[-num_ghosts:] = 0
+    rhs_M[-num_ghosts:] = 0
+    
+    # rhs_rho[-1] = 0
+    # rhs_U[-1] = 0
+    # rhs_R[-1] = 0
+    # rhs_M[-1]=0
 
 
     #package up the rhs values into a vector rhs (like current_state) for return - see uservariables.py
