@@ -84,9 +84,15 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_bar, t
     #unpackage the state vector for readability - these are the vectors of values across r values at time t_i
     # see uservariables.py for naming conventions
     
+    fill_outer_boundary(current_state, dx, N, r_is_logarithmic)
+    
     # Unpack variables from current_state - see uservariables.py
     ### u, v , phi, hrr, htt, hpp, K, arr, att, app, lambdar, shiftr, br, lapse = unpack_state(current_state, N_r) 
     U, R, M, rho = unpack_state(current_state, N_r) 
+    
+    U[-num_ghosts:] = U[-num_ghosts-1]
+    M[-num_ghosts:] = M[-num_ghosts-1]
+    R[-num_ghosts:] = R[-num_ghosts-1]
     
     
     rho_bkg = get_rho_bkg(t_i/t_ini, rho_bkg_ini)
@@ -182,11 +188,11 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_bar, t
     ####################################################################################################
 
 	# B.C. like A. Escriva does ... 
-    sh_rhs_U[:num_ghosts+1] = np.zeros_like(U[:num_ghosts+1])
-    sh_rhs_M[:num_ghosts+1] = np.zeros_like(U[:num_ghosts+1])
-    sh_rhs_R[:num_ghosts+1] = np.zeros_like(U[:num_ghosts+1])
-    sh_rhs_rho[:num_ghosts+1] = np.zeros_like(U[:num_ghosts+1])
-
+    sh_rhs_U[-num_ghosts:] = np.zeros_like(U[-num_ghosts:])
+    sh_rhs_M[-num_ghosts:] = np.zeros_like(U[-num_ghosts:])
+    sh_rhs_R[-num_ghosts:] = np.zeros_like(U[-num_ghosts:])
+    sh_rhs_rho[-num_ghosts:] = np.zeros_like(U[-num_ghosts:])
+    
 
 
     #package up the rhs values into a vector rhs (like current_state) for return - see uservariables.py
@@ -218,7 +224,7 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_bar, t
     # see gridfunctions for these, or https://github.com/KAClough/BabyGRChombo/wiki/Useful-code-background
     
     # overwrite outer boundaries with extrapolation (order specified in uservariables.py)
-    fill_outer_boundary(current_state, dx, N, r_is_logarithmic)
+    # fill_outer_boundary(current_state, dx, N, r_is_logarithmic)
     # fill_outer_boundary(rhs, dx, N, r_is_logarithmic)
     
     # rm = get_rm()
@@ -226,7 +232,7 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_bar, t
     # _rhs_fill_outer_boundary(current_state, dx, N, r_is_logarithmic, t_i, rm, omega, epsilon)
 
     # overwrite inner cells using parity under r -> - r
-    # fill_inner_boundary(current_state, dx, N, r_is_logarithmic)
+    fill_inner_boundary(current_state, dx, N, r_is_logarithmic)
     fill_inner_boundary(rhs, dx, N, r_is_logarithmic)
     
     # t5 = time.time()

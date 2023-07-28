@@ -12,7 +12,7 @@ from source.logderivatives import *
 from source.tensoralgebra import *
 from source.misnersharp import *
 
-from source.initialdata import rho_bkg_ini, t_ini
+# from source.initialdata import rho_bkg_ini, t_ini
 from source.initialdata import *  
 
 
@@ -20,7 +20,13 @@ from source.initialdata import *
 ################################ Main RHS get function  
 # skip_idxs = []
 
-def get_rhs(t_i, current_state, R_max, N_r, r_is_logarithmic, sigma, progress_bar, time_state) :     
+def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :     
+ 
+    R_max = params.r_max
+    N_r = params.N_r
+    r_is_logarithmic = params.r_is_logarithmic
+    t_ini = params.t_ini
+    rho_bkg_ini = params.rho_bkg_ini
 
     # Uncomment for timing and tracking progress
     # start_time = time.time()
@@ -48,7 +54,7 @@ def get_rhs(t_i, current_state, R_max, N_r, r_is_logarithmic, sigma, progress_ba
     U, R, M, rho = unpack_state(current_state, N_r) 
     
     
-    # # B.C. . 
+    # B.C. 
     U[-num_ghosts:] = U[-num_ghosts-1]
     M[-num_ghosts:] = M[-num_ghosts-1]
     R[-num_ghosts:] = R[-num_ghosts-1]
@@ -62,7 +68,13 @@ def get_rhs(t_i, current_state, R_max, N_r, r_is_logarithmic, sigma, progress_ba
 
     # get the various derivs that we need to evolve things
     if(r_is_logarithmic) : #take logarithmic derivatives
+        dUdr       = get_logdfdx(U, oneoverdx)
+        dRdr       = get_logdfdx(R, oneoverdx)
+        dMdr       = get_logdfdx(M, oneoverdx)
+        drhodr     = get_logdfdx(rho, oneoverdx)
+        print("Using log r in spatial cordinates is experimental. Currently don't work.")
         raise()
+        
     else :
         
         # # second derivatives
@@ -90,8 +102,8 @@ def get_rhs(t_i, current_state, R_max, N_r, r_is_logarithmic, sigma, progress_ba
     rhs_M = np.zeros_like(M)
     rhs_rho = np.zeros_like(rho)
     
-    ###################################################################   
     
+    ###################################################################   
     # now iterate over the grid (vector) and calculate the rhs values
     # note that we do the ghost cells separately below
     for ix in range(num_ghosts, N-num_ghosts) :
@@ -137,10 +149,10 @@ def get_rhs(t_i, current_state, R_max, N_r, r_is_logarithmic, sigma, progress_ba
     rhs_R[-num_ghosts:] = 0
     rhs_M[-num_ghosts:] = 0
     
-    # rhs_rho[-1] = 0
-    # rhs_U[-1] = 0
-    # rhs_R[-1] = 0
-    # rhs_M[-1]=0
+    rhs_rho[-1] = 0
+    rhs_U[-1] = 0
+    rhs_R[-1] = 0
+    rhs_M[-1]=0
 
 
     #package up the rhs values into a vector rhs (like current_state) for return - see uservariables.py
@@ -194,10 +206,10 @@ def get_rhs(t_i, current_state, R_max, N_r, r_is_logarithmic, sigma, progress_ba
     last_t, deltat = time_state
     
     # call update(n) here where n = (t - last_t) / dt
-    n = int((t_i - last_t)/deltat)
-    progress_bar.update(n)
+    n = deltat # int((t_i - last_t)/deltat)
+    progress_bar.update(round(n,3))
     # we need this to take into account that n is a rounded number:
-    time_state[0] = last_t + deltat * n
+    time_state[0] = last_t +  n
     
     # t6 = time.time()
     # print("Check timing and output ", t6 - t5) 

@@ -54,11 +54,7 @@ def get_Gamma(U, R, M):
 # RHS equations 
 	
 def get_rhs_U(U, M, R, rho, dRdr, drhodr, A, Gamma, omega):
-	
-	
-	frac1 = M/R**2
-	frac2 = (drhodr * Gamma**2)/(rho * dRdr )
-	
+		
 	dUdt = - A * ( omega/(omega+1) * (drhodr * Gamma**2)/(rho * dRdr) + M/R**2 + 4*np.pi*R*omega*rho)
 	
 	img = np.imag(dUdt)
@@ -106,11 +102,6 @@ def get_rhs_M(U, R, rho, A, omega):
 	return dMdt
 
 
-def get_omega():
-	
-	omega = 1./3.
-	return omega
-
 
 ##########################################################################
 ### FRW and other quantities
@@ -143,66 +134,4 @@ def compact_function(M, R, rho_bkg):
 	C =  2*M/R  - (8./3.)*np.pi*rho_bkg * R**2 
 	return C
 
-
-
-
-####  code below by Albert Escriva
-#######################################################
-
-# # Evolution of bkg vars
-# def solution_FLRW(t):
-
-	# w =1./3.#EQ. of state
-	# t_initial = 1.0 #initial time
-	# alpha = 2./(3.*(1.+w))
-	# #numerical initial conditions(background quantities)
-	# H_bI = alpha/(t_initial) #Initial Hubble constant
-	# e_bI = (3./(8.*pi))*H_bI**2 #initial energy density of the background
-	# a_I = 1. #initial scale factor 
-	# RHI = 1/H_bI # initial cosmological horizon 
-
-
-	# a_FLRW = a_I*(t/t_initial)**alpha 			#scale factor
-	# H_FLRW = alpha/t 							#Hubble factor
-	# e_FLRW = e_bI*(t_initial/t)**2 				#energy density of the background
-	# R_FLRW = a_FLRW*x 							#areal radious 
-	# U_FLRW = R_FLRW*H_FLRW						#euler velotity 
-	# M_FLRW = (4.*pi/3.)*e_FLRW*R_FLRW**3		#mass of the bakground
-	# A_FLRW = 1. 								#lapse function
-	# G_FLRW = 1. 								#gamma function
-	# return e_FLRW,R_FLRW,U_FLRW,M_FLRW,A_FLRW,G_FLRW
-	
-	
-# def system_static(epc,Mpc,Rpc,Upc,e_FRWc):
-	# Aqq = 1.*(e_FRWc/epc)**(w/(w+1.))
-	# fraction = Mpc[:-1]/Rpc[:-1]
-	# fraction = np.insert(fraction, len(fraction), 0.)
-	# Gqq = np.sqrt(1+Upc**2-2.*(fraction))
-	# return Aqq,Gqq
-	
-	
-# # The Misner-Sharp equations are set up
-# def system_dynamic_RK(Up,Rp,Mp,Ap,Gp,ep,devep,devRp,devUp):
-	# #Note that the point r=0 in defined 
-	# fraction = Mp[:-1]/Rp[:-1]**2
-	# fraction = np.insert(fraction, len(fraction), 0.)
-	# Ut = -Ap*( 4.*pi*Rp*w*ep + fraction +  (w/(1.+w))*(devep*Gp**2)/(ep*devRp) )
-	# Rt = Up*Ap
-	# Mt = -Ap*4.*pi*w*ep*Up*Rp**2
-	# derU_R = devUp/devRp
-	# ratioUR = Up[:-1]/Rp[:-1]
-	# ratioUR = np.insert(ratioUR, len(ratioUR), derU_R[-1])
-	# et = -Ap*ep*(1.+w)*(2.*ratioUR+devUp/devRp)
-	# return Ut,Rt,Mt,et
-	
-
-
-
-
-
-
-
-
-
-
-
+#END
