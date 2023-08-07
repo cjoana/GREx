@@ -51,8 +51,14 @@ def get_zeta(r, k_star):  # curvature
     k = k_star    
     A = nu
     B = 3./5*fNL*nu**2
-        
-    zeta =  nu * MySinc(k*x) + B * (MySinc(k*x))**2 
+    
+    # off = (nu * np.pi/k_star) 
+    off = 0
+    off = 0.76395   # excpected value sinc()^2        
+    
+    zeta =  nu * MySinc(k*x) + B * ((MySinc(k*x))**2  - off**2) 
+    if off: print("offset in zeta is : ", off, end='\r')
+    
     return zeta
     
 def get_dzetadr(r, k_star):  # d/dr curvature 

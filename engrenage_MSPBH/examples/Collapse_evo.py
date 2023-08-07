@@ -21,7 +21,7 @@ from source.rhsevolution import *             # go here to look at how the evolu
 from source.initialdata import *              # go here to change the initial conditions
 # from source.hamdiagnostic import *  
 
-h5_filename = './outC.hdf5'
+h5_filename = './out_B.hdf5'
 
 
 params = Munch(dict())
@@ -339,7 +339,29 @@ def restart_from_h5file(h5_filename, params, idata_params, start_from = False,\
              
     # rerun! 
     rk4(tn, yn, params, h5_filename, \
-                max_iterations, max_t, iter_output, cnt = int(start_it))
+                max_iterations, max_t, iter_output, cnt = int(start_it)+1)
+
+
+def load_simdata(h5_filename, params, idata_params):
+	
+    with h5py.File(h5_filename, "r") as h5file:
+        datalev = h5file["data"] 
+        keys = datalev.keys()
+        iterations = len(keys)//2 -1 
+        
+        times = np.array([ datalev[f't_{i}'][0] for i in range(iterations)])
+        solutions = np.array([ datalev[f'{i}'][:] for i in range(iterations)]) 
+
+        for key in params.keys():
+            params[key] = h5file.attrs[key]
+            print(f" {key} : {params[key]}")
+        
+        for key in idata_params.keys():
+            idata_params[key] = h5file.attrs[key]
+            print(f" {key} : {idata_params[key]}")
+        
+        return times, solutions
+	
 
     
 
@@ -410,8 +432,10 @@ def rk4(t0, y0, params, h5_filename=None,
         
 
 
+do_simulation = True
 restart = True
-if not restart: 
+
+if not restart and do_simulation: 
 	create_attrib_h5file(h5_filename)
 
 	N_t = 100
@@ -420,17 +444,17 @@ if not restart:
 
 	solution, t_sol = rk4(t_ini, initial_state, params, h5_filename,  \
 						   max_iterations=N_t, max_t=T, iter_output=N_t//20)
-else:
+elif do_simulation:
 	N_t = 100
 	N_t = 50000
-	T = 8000	
+	T = 15000	
 	
 	restart_from_h5file(h5_filename, params, idata_params, start_from = False,\
                         max_iterations=N_t, max_t=T, iter_output=N_t//20)
 	
 
 end = time.time() 
-print(f"Time needed for evolution {end-start} seconds.") 
+if do_simulation: print(f"Time needed for evolution {end-start} seconds.") 
 
 
 
@@ -441,39 +465,20 @@ print(f"Time needed for evolution {end-start} seconds.")
 
 
 
+
+
+t_sol, solution = load_simdata(h5_filename, params, idata_params)
 
 rm = get_rm(params, idata_params, print_out=1)
 
 
+print("times, ", t_sol)
+
 ############################################################
 
-if False: 
-    # Plot a single point versus time  at location r_i
-    var1 = idx_U 
-    var2 = idx_R
-    var3 = idx_M
-    var4 = idx_rho
-
-    t = t_sol
-
-    idx = num_ghosts+1
-    r_i = np.round(r[idx],2)
-    var1_of_t = solution[:, var1 * (N_r + 2*num_ghosts) + idx]
-
-    plt.plot(t[:], var1_of_t[:], 'b-', label=variable_names[var1])
-
-    plt.xlabel('t')
-    plt.ylabel('value at r is '+str(r_i))
-    plt.legend(loc='best')
-    plt.grid()
-    plt.show()
-
-
-#######################################################
-
-
 if True:
-    
+    R_max = params.r_max
+    rho_bkg_ini = params.rho_bkg_ini
     dx = R_max/N_r
     oneoverdx  = 1.0 / dx
     oneoverdxsquared = oneoverdx * oneoverdx
