@@ -79,6 +79,8 @@ def fill_inner_boundary(state, dx, N, r_is_logarithmic) :
     
     for ivar in range(0, NUM_VARS) :
         fill_inner_boundary_ivar(state, dx, N, r_is_logarithmic, ivar)
+        
+    return 0
                 
 def fill_inner_boundary_ivar(state, dx, N, r_is_logarithmic, ivar) :
 
@@ -101,87 +103,90 @@ def fill_inner_boundary_ivar(state, dx, N, r_is_logarithmic, ivar) :
                               + 0.5 * (dist1 * dist1) * d2fdx2_a ) * var_parity
         state[idx_a - 4] = (state[idx_a] + dist2 * dfdx_a
                               + 0.5 * (dist2 * dist2) * d2fdx2_a ) * var_parity            
-    else : 
+    else :
+	
         # Apply a simple reflection of the values
-        boundary_cells = np.array([(ivar)*N, (ivar)*N+1, (ivar)*N+2])
+        # boundary_cells = np.array([(ivar)*N, (ivar)*N+1, (ivar)*N+2])
+        boundary_cells = np.array([(ivar)*N + ig  for ig in range(num_ghosts)])
         for count, ix in enumerate(boundary_cells) :
-            offset = 5 - 2*count
+            # offset = 5 - 2*count
+            offset = 2*num_ghosts -1 - 2*count
             state[ix] = state[ix + offset] * var_parity
+            # print(f' {ix} gets value from {ix+offset}')
+
+    return 0 
 
 # fills the outer boundary ghosts at large r
 def fill_outer_boundary(state, dx, N, r_is_logarithmic) :
 
     for ivar in range(0, NUM_VARS) :
         fill_outer_boundary_ivar(state, dx, N, r_is_logarithmic, ivar)
+
+    return 0 
     
 def fill_outer_boundary_ivar(state, dx, N, r_is_logarithmic, ivar) :
     
     R_lin = dx * (N - 2 * num_ghosts)
     r_linear = np.linspace(-(num_ghosts-0.5)*dx, R_lin+(num_ghosts-0.5)*dx, N)    
-    boundary_cells = np.array([(ivar + 1)*N-3, (ivar + 1)*N-2, (ivar + 1)*N-1])
-    for count, ix in enumerate(boundary_cells) :
+    # boundary_cells = np.array([(ivar + 1)*N-3, (ivar + 1)*N-2, (ivar + 1)*N-1])
+    boundary_cells = np.array([(ivar + 1)*N-ig-1 for ig in range(num_ghosts)[::-1] ])
+    for count, ix in enumerate(boundary_cells): 
         offset = -1 - count
         if(r_is_logarithmic) :
             #zeroth order interpolation for now
             state[ix]    = state[ix + offset]            
         else :
             # use asymptotic powers
-            state[ix]    = state[ix + offset] * ((r_linear[N - 3 + count] / r_linear[N - 4]) 
-                                                                         ** asymptotic_power[ivar])
+            power = asymptotic_power[ivar]
+            state[ix] = state[ix + offset] * \
+			  ((r_linear[N-num_ghosts + count]  /     # r at ghost cell
+                r_linear[N-num_ghosts -1])**power )   # r at last non-ghost cell
+    return 0
 
 # Manage the state vector (for readability mainly)
 def unpack_state(vars_vec, N_r) :
 
     domain_length = N_r + 2 * num_ghosts
     
-    # Scalar field vars
-    u    = vars_vec[idx_u * domain_length : (idx_u + 1) * domain_length]
-    v    = vars_vec[idx_v * domain_length : (idx_v + 1) * domain_length]
+
+    # chi, a, b, K, AX, X, Lambda, lapse, beta, br, D, E, S 
+
+    # BSSN and matter vars
+    chi    = vars_vec[idx_chi * domain_length : (idx_chi + 1) * domain_length]
+    a    = vars_vec[idx_a * domain_length : (idx_a + 1) * domain_length]
+    b    = vars_vec[idx_b * domain_length : (idx_b + 1) * domain_length]
+    K  = vars_vec[idx_K * domain_length : (idx_K + 1) * domain_length]
+    AX    = vars_vec[idx_AX * domain_length : (idx_AX + 1) * domain_length]
+    X    = vars_vec[idx_X * domain_length : (idx_X + 1) * domain_length]
+    Lambda    = vars_vec[idx_Lambda * domain_length : (idx_Lambda + 1) * domain_length]
+    lapse    = vars_vec[idx_lapse * domain_length : (idx_lapse + 1) * domain_length]
+    beta    = vars_vec[idx_beta * domain_length : (idx_beta + 1) * domain_length]
+    br    = vars_vec[idx_br * domain_length : (idx_br + 1) * domain_length]
+    D    = vars_vec[idx_D * domain_length : (idx_D + 1) * domain_length]
+    E    = vars_vec[idx_E * domain_length : (idx_E + 1) * domain_length]
+    S    = vars_vec[idx_S * domain_length : (idx_S + 1) * domain_length]
     
-    # Conformal factor and rescaled perturbation to spatial metric
-    phi    = vars_vec[idx_phi * domain_length : (idx_phi + 1) * domain_length]
-    hrr    = vars_vec[idx_hrr * domain_length : (idx_hrr + 1) * domain_length]
-    htt    = vars_vec[idx_htt * domain_length : (idx_htt + 1) * domain_length]
-    hpp    = vars_vec[idx_hpp * domain_length : (idx_hpp + 1) * domain_length]
+    return chi, a, b, K, AX, X, Lambda, lapse, beta, br, D, E, S 
 
-    # Mean curvature and rescaled perturbation to traceless A_ij
-    K      = vars_vec[idx_K   * domain_length : (idx_K   + 1) * domain_length]
-    arr    = vars_vec[idx_arr * domain_length : (idx_arr + 1) * domain_length]
-    att    = vars_vec[idx_att * domain_length : (idx_att + 1) * domain_length]
-    app    = vars_vec[idx_app * domain_length : (idx_app + 1) * domain_length]
-
-    # Gamma^x, shift and lapse
-    lambdar    = vars_vec[idx_lambdar * domain_length : (idx_lambdar + 1) * domain_length]
-    shiftr     = vars_vec[idx_shiftr  * domain_length : (idx_shiftr  + 1) * domain_length]
-    br         = vars_vec[idx_br      * domain_length : (idx_br      + 1) * domain_length]
-    lapse      = vars_vec[idx_lapse   * domain_length : (idx_lapse   + 1) * domain_length]    
-    
-    return u, v , phi, hrr, htt, hpp, K, arr, att, app, lambdar, shiftr, br, lapse
-
-def pack_state(vars_vec, N_r, u, v , phi, hrr, htt, hpp, K, arr, att, app, lambdar, shiftr, br, lapse) :
+def pack_state(vars_vec, N_r,chi, a, b, K, AX, X, Lambda, lapse, beta, br, D, E, S) :
     
     domain_length = N_r + 2 * num_ghosts
-    
+        
     #package up the rhs values into a vector like vars_vec for return 
-  
-    # Scalar field vars
-    vars_vec[idx_u * domain_length : (idx_u + 1) * domain_length] = u
-    vars_vec[idx_v * domain_length : (idx_v + 1) * domain_length] = v
     
-    # Conformal factor and rescaled perturbation to spatial metric
-    vars_vec[idx_phi * domain_length : (idx_phi + 1) * domain_length] = phi
-    vars_vec[idx_hrr * domain_length : (idx_hrr + 1) * domain_length] = hrr
-    vars_vec[idx_htt * domain_length : (idx_htt + 1) * domain_length] = htt
-    vars_vec[idx_hpp * domain_length : (idx_hpp + 1) * domain_length] = hpp
-
-    # Mean curvature and rescaled perturbation to traceless A_ij
-    vars_vec[idx_K   * domain_length : (idx_K   + 1) * domain_length] = K
-    vars_vec[idx_arr * domain_length : (idx_arr + 1) * domain_length] = arr
-    vars_vec[idx_att * domain_length : (idx_att + 1) * domain_length] = att
-    vars_vec[idx_app * domain_length : (idx_app + 1) * domain_length] = app
-
-    # Gamma^x, shift and lapse
-    vars_vec[idx_lambdar * domain_length : (idx_lambdar + 1) * domain_length] = lambdar
-    vars_vec[idx_shiftr  * domain_length : (idx_shiftr  + 1) * domain_length] = shiftr
-    vars_vec[idx_br      * domain_length : (idx_br      + 1) * domain_length] = br
-    vars_vec[idx_lapse   * domain_length : (idx_lapse   + 1) * domain_length] = lapse
+    # BSSN and matter vars
+    vars_vec[idx_chi * domain_length : (idx_chi + 1) * domain_length] = chi
+    vars_vec[idx_a * domain_length : (idx_a + 1) * domain_length] = a
+    vars_vec[idx_b * domain_length : (idx_b + 1) * domain_length] = b 
+    vars_vec[idx_K * domain_length : (idx_K + 1) * domain_length] = K 
+    vars_vec[idx_AX * domain_length : (idx_AX + 1) * domain_length] = AX
+    vars_vec[idx_X * domain_length : (idx_X + 1) * domain_length] = X 
+    vars_vec[idx_Lambda * domain_length : (idx_Lambda + 1) * domain_length] = Lambda
+    vars_vec[idx_lapse * domain_length : (idx_lapse + 1) * domain_length] = lapse 
+    vars_vec[idx_beta * domain_length : (idx_beta + 1) * domain_length] = beta 
+    vars_vec[idx_br * domain_length : (idx_br + 1) * domain_length] = br 
+    vars_vec[idx_D * domain_length : (idx_D + 1) * domain_length] = D 
+    vars_vec[idx_E * domain_length : (idx_E + 1) * domain_length] = E 
+    vars_vec[idx_S * domain_length : (idx_S + 1) * domain_length] = S 
+    
+    return 0
