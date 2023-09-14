@@ -15,35 +15,35 @@ idx_AX      = 4    # A_lambda in alcubierre's paper
 idx_X       = 5    # lambda in alcubierre's paper 
 idx_Lambda  = 6    # Delta^r in alcubierre's papaer
 idx_lapse   = 7    # lapse
-idx_beta    = 8   # shift^r
-idx_br      = 9   # br for evolution of beta
+idx_beta    = 8    # shift^r
+idx_br      = 9    # br for evolution of beta
 
 idx_D       = 10    # fluid cons. var for rest energy
 idx_E       = 11    # fluid cons. var for intrinsic energy
 idx_S       = 12    # fluid cons. var for radial momenta
 
-NUM_VARS = idx_lapse + 1
+NUM_VARS = idx_S + 1
 
-variable_names = [ "phi", "hrr", "htt", "hpp", 
-                   "K", "arr", "att", "app", 
-                   "lambdar", "shiftr", "br", "lapse",
-                   "D", "E", "V"]
+variable_names = [ "chi", "a", "b", "K", 
+                   "AX", "X", "Lambda", 
+                   "lapse", "beta", "br", 
+                   "D", "E", "S"]
 
 # parity under r -> -r
 parity = [
-          1, 1, 1, 1,     # phi, h
-          1, 1, 1, 1,     # K, a
-          -1, -1, -1, 1,  # lambda^r, shift^r, b^r, lapse
-          1, 1, -1,       # D, E, V
+          1, 1, 1, 1,   # chi, a, b, K 
+          1, 1, -1,       # AX, X,  Lambda
+          1, -1, -1,      # lapse, beta, br
+          1, 1, -1,       # D, E, S
           ]  
 
 
 #### very much dependent on gauge choice!!!
 # scaling at larger r as power of r, i.e. var ~ r^asymptotic_power
 # currently only for linear r
-asymptotic_power =   [
-                      -1., -1., -1., -1.,    # phi, h
-                      -2., -2., -2., -2.,    # K, a
-                      -2., -1., -1., 0.,     # lambda^r, shift^r, b^r, lapse
-                      0., 0.,  -1.,          # D, E, V
-                      ]             
+asymptotic_power =   [          ### TODO check
+                       0., 0., 0., 0.,    # chi, a, b, K 
+                       0., 0., 0.,         # AX, X, Lambda, 
+                       0., 0,  0,         # lapse, beta, br
+                       0., 0.,  0.,          # D, E, S
+                     ]             

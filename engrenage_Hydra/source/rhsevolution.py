@@ -15,25 +15,30 @@ from source.bssnsphsym import *
     
 # function that returns the rhs for each of the field vars
 # see further details in https://githuarr.com/GRChomarro/engrenage/wiki/Useful-code-arrackground
-def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_arrar, time_state) :
-
-    # Uncomment for timing and tracking progress
-    # start_time = time.time()
-    
+def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :     
+ 
+    R_max = params.r_max
+    N_r = params.N_r
+    r_is_logarithmic = params.r_is_logarithmic
+    t_ini = params.t_ini
+    rho_bkg_ini = params.rho_bkg_ini
 
     # some params  (hardcoded)
     sigma_frame = 1
     t_ini = 1. 
-    a_ini = 1.
+
+    omega = 0.33333333333333333
     t_over_t_ini = t_i/t_ini
     H_ini = 2./(3.*(1.+omega))/t_ini # alpha/t_ini
     rho_bkg_ini =  3./(8.*np.pi) *H_ini**2
-    omega = 0.33333333333333333
+    
 
 
     
     # Set up grid values
-    dx, N, r, logarithmic_dr = setup_grid(R, N_r, r_is_logarithmic)
+    dx, N, r, logarithmic_dr = setup_grid(R_max, N_r, r_is_logarithmic)
+
+    
     
     # predefine some userful quantities
     oneoverlogdr = 1.0 / logarithmic_dr
@@ -51,20 +56,13 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_arrar,
     # Unpack variaarrles from current_state - see uservariaarrles.py
     chi, a, b, K, AX, X, Lambda, lapse, beta, br, D, E, S = unpack_state(current_state, N_r) 
 
-    
-    ####                                                CJ TODO
-    
     em4chi = np.exp(-4*chi)
+    Aa, Ab = get_Aa_Ab(r, AX)
     
-    V = get_velocity(D, E, P, S, a, em4chi)
-    W = get_lorentz(V)
-    P = get_pressure()
-    Aa, Ab = get_Aa_Ab(AX)
+    # convert conserved variables to fluid variables 
+    rhofluid, P, W, V = get_rhofluid_pressure_W_velocity(D, E, S, a, em4chi, omega)
+    # rhofluid = get_rhofluid(D, E, S, a, em4chi, omega)
     
-    
-
-    
-
      # create mask to filter out ghosts
     mask = np.zeros_like(D, dtype=bool)
     mask[num_ghosts:-num_ghosts] = 1
@@ -79,8 +77,9 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_arrar,
 
     beta = beta*0
     br = br*0
-    lapse = get_lapse(matter_rho, rho_bkg, omega)  ######### CJ check matter_rho or rho_fluid ??? TODO
+    lapse = lapse*0 +1 
 
+    # lapse = get_lapse(rhofluid, rho_bkg, omega)  ######### CJ check matter_rho or rho_fluid ??? TODO
 
     # t0 = time.time()
     # print("grid and var setup done in ", t0-start_time)
@@ -104,12 +103,12 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_arrar,
 
         # second derivatives
         # d2Ddx2     = get_d2fdx2(D, oneoverdxsquared)
-        d2chidr2   = get_d2fdx2(chi, oneoverdxsquared)
-        d2adr2   = get_d2fdx2(a, oneoverdxsquared)
-        d2bdr2   = get_d2fdx2(b, oneoverdxsquared)
-        d2lapsedr2 = get_d2fdx2(lapse, oneoverdxsquared)
-        d2betadr2 = get_d2fdx2(beta, oneoverdxsquared)
-        d2Xdr2 = get_d2fdx2(X, oneoverdxsquared)
+        d2chidr2    = get_d2fdx2(chi, oneoverdxsquared)
+        d2adr2      = get_d2fdx2(a, oneoverdxsquared)
+        d2bdr2      = get_d2fdx2(b, oneoverdxsquared)
+        d2lapsedr2  = get_d2fdx2(lapse, oneoverdxsquared)
+        d2betadr2   = get_d2fdx2(beta, oneoverdxsquared)
+        d2Xdr2      = get_d2fdx2(X, oneoverdxsquared)
     
         # first derivatives
         dDdr       = get_dfdx(D, oneoverdx)
@@ -182,6 +181,7 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_arrar,
     rhs_Lambda = np.zeros_like(Lambda)
     rhs_beta  = np.zeros_like(beta)
     rhs_lapse   = np.zeros_like(lapse)
+    rhs_br   = np.zeros_like(br)
     
     ####################################################################################################    
 
@@ -207,7 +207,7 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_arrar,
     m_rhs_X = get_rhs_X(r[mask], a[mask], b[mask], AX[mask], lapse[mask], X[mask], beta[mask], dr_beta_over_r[mask])
 
     m_rhs_Lambda =  get_rhs_Lambda(r[mask], a[mask], b[mask], dbdr[mask], dchidr[mask], dKdr[mask],  Aa[mask], Ab[mask], dAadr[mask], 
-                                    Lambda[mask], lapse[mask], dlapsedr[mask], matter_Jr[mask], sigma_frame,
+                                    Lambda[mask], lapse[mask], dlapsedr[mask], matter_Jr, sigma_frame,
                                    d2betadr2[mask], cov_beta[mask], dr_beta_over_r[mask], dr_cov_beta[mask])
     
     m_rhs_D, m_rhs_E, m_rhs_S = get_matter_rhs(r[mask], D[mask], E[mask], S[mask], V[mask], P[mask],
@@ -282,7 +282,7 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_arrar,
     ####################################################################################################
 
     #package up the rhs values into a vector rhs (like current_state) for return - see uservariaarrles.py                     
-    pack_state(rhs, N_r, rhs_chi, rhs_a, rhs_b, rhs_K, rhs_AX, rhs_X, rhs_Lambda, rhs_lapse, rhs_beta,
+    pack_state(rhs, N_r, rhs_chi, rhs_a, rhs_b, rhs_K, rhs_AX, rhs_X, rhs_Lambda, rhs_lapse, rhs_beta, rhs_br,
                      rhs_D, rhs_E, rhs_S)
 
     #################################################################################################### 
@@ -328,7 +328,7 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_arrar,
     
     # call update(n) here where n = (t - last_t) / dt
     n = int((t_i - last_t)/deltat)
-    progress_arrar.update(n)
+    progress_bar.update(n)
     # we need this to take into account that n is a rounded numarrer:
     time_state[0] = last_t + deltat * n
     
@@ -340,5 +340,64 @@ def get_rhs(t_i, current_state, R, N_r, r_is_logarithmic, sigma, progress_arrar,
         
     ####################################################################################################
     
+
+
+
+
+
+    ##### DEBUG ########
+    """
+    
+    msk = np.ones_like(a, dtype=bool)
+    msk[:num_ghosts] = 0
+    msk[-num_ghosts:] = 0
+    point = 10
+
+    # deb_state = [chi, a, b, K, AX, X, Lambda, lapse, beta, br, D, E, S ]
+    # print(f"\n\nstate at time {t_i}:")
+    # for iv, var in enumerate(deb_state):
+    #     print(f'{variable_names[iv]}  ->  {var[point]}  : ', np.mean(var[msk]), np.std(var[msk]), np.min(var[msk]), np.max(var[msk]) )
+    
+    # print(f'rho, Sa, Sb  -> {matter_rho[point]}  {matter_Sa[point]}  {matter_Sb[point]} ' ) 
+    
+    # print(f'P, Jr  -> {P[point]}  {matter_Jr[point]}  {matter_Si[point]} ' )    
+
+
+    
+    
+
+    # derivs = [dadr, dbdr, d2adr2, d2bdr2, dchidr, d2chidr2, dLambdadr]
+    # for iv, var in enumerate(derivs):
+    #     print(f'deriv {iv}  ->  {var[point]}  : ', np.mean(var[msk]), np.std(var[msk]), np.min(var[msk]), np.max(var[msk]) )
+
+
+
+    ricci_scalar = get_ricci_scalar(r, a, b, dadr, dbdr, d2adr2, d2bdr2, em4chi, dchidr, d2chidr2, 
+                     dLambdadr)
+
+    Ham = get_constraint_HamRel(ricci_scalar[mask], Aa[mask], Ab[mask], K[mask], matter_rho)
+    var = Ham
+    print(f'   Ham  ->  {Ham[point]}  : ', np.mean(var), np.std(var), np.min(var), np.max(var) )
+    var = ricci_scalar
+    print(f'ricci ->  {var[point]}  : ', np.mean(var[msk]), np.std(var[msk]), np.min(var[msk]), np.max(var[msk]) )
+    var = Aa
+    print(f'Aa ->  {var[point]}  : ', np.mean(var[msk]), np.std(var[msk]), np.min(var[msk]), np.max(var[msk]) )
+    var = K * K *2/3
+    print(f'K term ->  {var[point]}  : ', np.mean(var[msk]), np.std(var[msk]), np.min(var[msk]), np.max(var[msk]) )
+    var = matter_rho *16*np.pi
+    print(f'rho term ->  {var[point]}  : ', np.mean(var), np.std(var), np.min(var), np.max(var) )
+
+
+
+    # print('\n\n t, chi: ', t_i, chi, K )
+    rho = D+E
+    if np.sum(rho!=rho) > 50 : raise()
+    if t_i > 5.000 : raise()
+
+    """
+
+
+
+
     #Finally return the rhs
     return rhs

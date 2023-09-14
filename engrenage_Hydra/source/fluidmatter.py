@@ -23,7 +23,7 @@ def get_matter_rhs(r, D, E, S, V, P,
     dDdt = lapse * K * D - (dlapsedr*D*V + dDdr*lapse*V + covV*lapse*D)  
     
     dEdt = lapse*K*(E+P) +  (D+E+P)*(lapse*V*V*K_rr - V*dlapsedr) + \
-              - (dlapsedr*V(E+P) + lapse*covV*(E+P) + lapse*V*(dEdr+dPdr) )
+              - (dlapsedr*V*(E+P) + lapse*covV*(E+P) + lapse*V*(dEdr+dPdr) )
     
     Bracket = (S*V* + P)
     dBracket = covS * V + S *covV + dPdr 
@@ -70,8 +70,8 @@ def get_Sa_Sb(r, a, b, D, E, V, P, em4chi):
     Srr = rhohW2 *V_r*V_r + P*hrr
     Stt = P*htt
 
-    Sa = hrr * Srr
-    Sb = htt * Stt
+    Sa = Srr/hrr
+    Sb = Stt/htt
 
     return Sa, Sb
 
@@ -94,7 +94,9 @@ def get_rhofluid(D, E, S, a, em4chi, omega):
     S2 = S * S * hRR 
     # use algebraic solution from second order equation
     in_sqrt = (omega-1)*(omega-1)*(E + D)*(E + D) - 4*omega*S2 + 4*omega*(E + D)*(E + D)
-    in_sqrt = in_sqrt if (in_sqrt > 0) else 0                    
+    if np.sum(in_sqrt < 0) > 0 : 
+        print('Warning in_sqrt < 0')
+    in_sqrt[in_sqrt < 0] = 0                   
     fl_dens = ((omega -1)*(E+D) + (in_sqrt)**0.5 )/(2*omega)
     return fl_dens
 
@@ -107,7 +109,10 @@ def get_rhofluid_pressure_W_velocity(D, E, S, a, em4chi, omega):
     S2 = S * S * hRR 
     # use algebraic solution from second order equation
     in_sqrt = (omega-1)*(omega-1)*(E + D)*(E + D) - 4*omega*S2 + 4*omega*(E + D)*(E + D)
-    in_sqrt = in_sqrt if (in_sqrt > 0) else 0                               
+
+    if np.sum(in_sqrt < 0) > 0 : 
+        print('Warning in_sqrt < 0')
+    in_sqrt[in_sqrt < 0] = 0                                    
     
     fl_dens = ((omega -1)*(E+D) + (in_sqrt)**0.5 )/(2*omega)
     pressure = fl_dens*omega
