@@ -1,5 +1,16 @@
 #rhsevolution.py
 
+####################
+#  This is the code related to the rhs evolution equations. It evolves BSSN with scalar fields in
+#  spherical symmetry.  The code constructed using the structure of theengranage code as a reference,
+#  but optimized for fast/spherical simulations. For the pedagogical engrenage code, please visit
+#  https://github.com/GRChombo/engrenage develope by Katy Clough + others. 
+# 
+#  The codes below have been develoved by Cristian Joana. 
+#  CJ deeply thanks K. Clough et. al. for inspiring these lines of code.
+############################################
+
+
 # python modules
 import numpy as np
 import time
@@ -9,28 +20,28 @@ from source.uservariables import *
 from source.gridfunctions import *
 from source.fourthorderderivatives import *
 from source.logderivatives import *
-from source.tensoralgebra import *
-from source.fluidmatter import *
+# from source.tensoralgebra import *
+from source.scalarfield_matter import *
 from source.bssnsphsym import *
     
 # function that returns the rhs for each of the field vars
-# see further details in https://githuarr.com/GRChomarro/engrenage/wiki/Useful-code-arrackground
+# see further details in https://github.com/GRChombo/engrenage/wiki/Useful-code-background
 def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :     
  
     R_max = params.r_max
     N_r = params.N_r
     r_is_logarithmic = params.r_is_logarithmic
     t_ini = params.t_ini
-    rho_bkg_ini = params.rho_bkg_ini
+    # rho_bkg_ini = params.rho_bkg_ini
 
     # some params  (hardcoded)
     sigma_frame = 1
     t_ini = 1. 
 
-    omega = 0.33333333333333333
+    # omega = 0.33333333333333333
     t_over_t_ini = t_i/t_ini
-    H_ini = 2./(3.*(1.+omega))/t_ini # alpha/t_ini
-    rho_bkg_ini =  3./(8.*np.pi) *H_ini**2
+    # H_ini = 2./(3.*(1.+omega))/t_ini # alpha/t_ini
+    # rho_bkg_ini =  3./(8.*np.pi) *H_ini**2
     
 
 
@@ -50,11 +61,11 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
     rhs = np.zeros_like(current_state) 
     
     ####################################################################################################
-    #unpackage the state vector for readaarrility - these are the vectors of values across r values at time t_i
-    # see uservariaarrles.py for naming conventions
+    #unpackage the state vector for readability - these are the vectors of values across r values at time t_i
+    # see uservariables.py for naming conventions
     
     # Unpack variables from current_state - see uservariables.py
-    chi, a, b, K, AX, X, Lambda, lapse, beta, br, D, E, S = unpack_state(current_state, N_r) 
+    chi, a, b, K, AX, X, Lambda, lapse, beta, br, phi, psy, Pi = unpack_state(current_state, N_r) 
 
     em4chi = np.exp(-4*chi)
     Aa, Ab = get_Aa_Ab(r, AX)
@@ -65,18 +76,10 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
     mask[num_ghosts:-num_ghosts] = 1
                 
     # Matter sources - see mymatter.py                                                                       
-    matter_rho      = get_rho( D[mask], E[mask] )
-    matter_Si       = get_Si(S[mask])
-    matter_Jr = matter_Si
-    matter_Sa, matter_Sb          = get_Sa_Sb(r[mask], a[mask], b[mask], D[mask], E[mask], V[mask], P[mask], em4chi[mask])
-
-    rho_bkg = get_rho_bkg(t_over_t_ini, rho_bkg_ini)
-
-    beta = beta*0
-    br = br*0
-    lapse = lapse*0 +1 
-
-    # lapse = get_lapse(rhofluid, rho_bkg, omega)  ######### CJ check matter_rho or rho_fluid ??? TODO
+    matter_rho      = get_rho(phi[mask], psy[mask], Pi[mask], a[mask], em4chi[mask]) 
+    matter_Si       = get_Sr_U(phi[mask], psy[mask], Pi[mask])   #upper index
+    matter_Jr       = matter_Si     #upper index 
+    matter_Sa, matter_Sb   = get_Sa_Sb(psy[mask], Pi[mask], a[mask], em4chi[mask])
 
     # t0 = time.time()
     # print("grid and var setup done in ", t0-start_time)
@@ -86,7 +89,7 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
     # get the various derivs that we need to evolve things
     if(r_is_logarithmic) : #take logarithmic derivatives
 
-        # ToDo ?
+        ###### TODO
         raise()
       
     else: 
@@ -103,6 +106,7 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
     
         # first derivatives
         dphidr       = get_dfdx(phi, oneoverdx)
+        dpsydr       = get_dfdx(psy, oneoverdx)
         dPidr       = get_dfdx(Pi, oneoverdx)
         dchidr     = get_dfdx(chi, oneoverdx)
         dadr       = get_dfdx(a, oneoverdx)
@@ -122,9 +126,11 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
         dr_dlapsedr_over_r = get_dfdx(dlapsedr/r, oneoverdx)
         dr_dchidr_over_r = get_dfdx(dchidr/r, oneoverdx)
         dr_Lambda_over_r = get_dfdx(Lambda/r, oneoverdx)
+        dr_lapsePi = get_dfdx(lapsePi, oneoverdx)
     
         # first derivatives - advec left and right
         dphidr_advec_L       = get_dfdx_advec_L(phi, oneoverdx)
+        dpsydr_advec_L       = get_dfdx_advec_L(psy, oneoverdx)
         dPidr_advec_L       = get_dfdx_advec_L(Pi, oneoverdx)
         dchidr_advec_L     = get_dfdx_advec_L(chi, oneoverdx)
         dadr_advec_L       = get_dfdx_advec_L(a, oneoverdx)
@@ -136,7 +142,8 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
         dbetadr_advec_L  = get_dfdx_advec_L(beta, oneoverdx)
         dlapsedr_advec_L   = get_dfdx_advec_L(lapse, oneoverdx)
     
-        dphidr_advec_R       = get_dfdx_advec_R(phi, oneoverdx)
+        dphidr_advec_R      = get_dfdx_advec_R(phi, oneoverdx)
+        dpsydr_advec_R      = get_dfdx_advec_R(psy, oneoverdx)
         dPidr_advec_R       = get_dfdx_advec_R(Pi, oneoverdx)
 
         dchidr_advec_R     = get_dfdx_advec_R(chi, oneoverdx)
@@ -145,8 +152,8 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
         dKdr_advec_R       = get_dfdx_advec_R(K, oneoverdx)
         dAXdr_advec_R      = get_dfdx_advec_R(AX, oneoverdx)
         dXdr_advec_R       = get_dfdx_advec_R(X, oneoverdx)
-        dLambdadr_advec_R = get_dfdx_advec_R(Lambda, oneoverdx)
-        dbetadr_advec_R  = get_dfdx_advec_R(beta, oneoverdx)
+        dLambdadr_advec_R  = get_dfdx_advec_R(Lambda, oneoverdx)
+        dbetadr_advec_R    = get_dfdx_advec_R(beta, oneoverdx)
         dlapsedr_advec_R   = get_dfdx_advec_L(lapse, oneoverdx) 
 
     # t2 = time.time()
@@ -156,6 +163,7 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
     
     # make containers for rhs values
     rhs_phi   = np.zeros_like(phi)
+    rhs_psy   = np.zeros_like(psy)
     rhs_Pi    = np.zeros_like(Pi)
 
     rhs_chi = np.zeros_like(chi)
@@ -196,13 +204,14 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
                                     Lambda[mask], lapse[mask], dlapsedr[mask], matter_Jr, sigma_frame,
                                    d2betadr2[mask], cov_beta[mask], dr_beta_over_r[mask], dr_cov_beta[mask])
     
-    # m_rhs_phi, m_rhs_Pi = ###
+    m_rhs_phi, m_rhs_psy m_rhs_Pi = get_matter_rhs(phi[mask], psy[mask], Pi[mask], dpsydr[mask], a[mask], b[mask], dadr[mask], dbdr[mask], em4chi[mask],
+                                    dchidr[mask], K[mask], lapse[mask], dlapsedr[mask], dr_lapsePi[mask]) 
     
     
-
+    #### TODO: choose gauge evolution
     ####### rhs Gauge vars
     # rhs_br[ix]     = 0.75 * rhs_Lambda[ix] - eta * br[ix]
-    # rhs_beta[ix] = arrr[ix]
+    # rhs_beta[ix] = br[ix]
     # rhs_lapse[ix]  = - 2.0 * lapse[ix] * K[ix] 
     
 
@@ -215,14 +224,16 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
     rhs_AX[mask] = m_rhs_AX
     rhs_Lambda[mask] = m_rhs_Lambda
     rhs_phi[mask] = m_rhs_phi
+    rhs_psy[mask] = m_rhs_psy
     rhs_Pi[mask] = m_rhs_Pi
 
         
-    # Add advection to time derivatives (this is the arrit coming from the Lie derivative   
+    # Add advection to time derivatives (this is the bit coming from the Lie derivative   
     # RIGHT side advec (upwind)
     maskR = (beta>0)
-    rhs_phi[maskR]       += beta[maskR] * dDdr_advec_R[maskR]
-    rhs_Pi[maskR]       += beta[maskR] * dEdr_advec_R[maskR]
+    rhs_phi[maskR]      += beta[maskR] * dphidr_advec_R[maskR]
+    rhs_psy[maskR]      += beta[maskR] * dpsydr_advec_R[maskR] + psy[maskR]* dbetadr_advec_R[maskR]
+    rhs_Pi[maskR]       += beta[maskR] * dPidr_advec_R[maskR]
     rhs_chi[maskR]     += beta[maskR] * dchidr_advec_R[maskR]
     rhs_a[maskR]       += beta[maskR] * dadr_advec_R[maskR] + 2*a[maskR]*dbetadr_advec_R[maskR]
     rhs_b[maskR]       += beta[maskR] * dbdr_advec_R[maskR]
@@ -236,11 +247,12 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
     # rhs_br[maskR]      += 0.0
     # rhs_beta[maskR]  += 0.0
 
-        
+
     # LEFT side advec (downwind)
     maskL = (beta<0)
-    rhs_phi[maskL]       += beta[maskL] * dDdr_advec_L[maskL]
-    rhs_Pi[maskL]       += beta[maskL] * dEdr_advec_L[maskL]
+    rhs_phi[maskL]      += beta[maskL] * dphidr_advec_L[maskL]
+    rhs_psy[maskL]      += beta[maskL] * dpsydr_advec_L[maskL] + psy[maskL]* dbetadr_advec_L[maskL]
+    rhs_Pi[maskL]       += beta[maskL] * dPidr_advec_L[maskL]
     rhs_chi[maskL]     += beta[maskL] * dchidr_advec_L[maskL]
     rhs_a[maskL]       += beta[maskL] * dadr_advec_L[maskL] + 2*a[maskL]*dbetadr_advec_L[maskL]
     rhs_b[maskL]       += beta[maskL] * dbdr_advec_L[maskL]
@@ -263,14 +275,14 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
     
     ####################################################################################################
 
-    #package up the rhs values into a vector rhs (like current_state) for return - see uservariaarrles.py                     
+    #package up the rhs values into a vector rhs (like current_state) for return - see uservariables.py                     
     pack_state(rhs, N_r, rhs_chi, rhs_a, rhs_b, rhs_K, rhs_AX, rhs_X, rhs_Lambda, rhs_lapse, rhs_beta, rhs_br,
                      rhs_phi, rhs_Pi, rhs_S)
 
     #################################################################################################### 
             
     # finally add Kreiss Oliger dissipation which removed noise at frequency of grid resolution
-    # sigma = 10.0 # kreiss-oliger damping coefficient, max_step should arre limited to 0.1 R/N_r
+    # sigma = 10.0 # kreiss-oliger damping coefficient, max_step should be limited to 0.1 R/N_r
     
     diss = np.zeros_like(current_state) 
     for ivar in range(0, NUM_VARS) :
@@ -288,30 +300,30 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
     
     #################################################################################################### 
     
-    # see gridfunctions for these, or https://githuarr.com/KAClough/BaarryGRChomarro/wiki/Useful-code-arrackground
+    # see gridfunctions for these, or https://github.com/GRChombo/engrenage/wiki/Useful-code-background
     
-    # overwrite outer arroundaries with extrapolation (order specified in uservariaarrles.py)
+    # overwrite outer boundaries with extrapolation (order specified in uservariables.py)
     fill_outer_boundary(current_state, dx, N, r_is_logarithmic)
 
     # overwrite inner cells using parity under r -> - r
     fill_inner_boundary(rhs, dx, N, r_is_logarithmic)
     
     # t5 = time.time()
-    # print("Fill arroundaries done in ", t5 - t4) 
+    # print("Fill boundaries done in ", t5 - t4) 
                 
     #################################################################################################### 
     
     # Some code for checking timing and progress output
     
     # state is a list containing last updated time t:
-    # state = [last_t, dt for progress arrar]
-    # its values can arre carried arretween function calls throughout the ODE integration
+    # state = [last_t, dt for progress bar]
+    # its values can be carried between function calls throughout the ODE integration
     last_t, deltat = time_state
     
     # call update(n) here where n = (t - last_t) / dt
     n = int((t_i - last_t)/deltat)
     progress_bar.update(n)
-    # we need this to take into account that n is a rounded numarrer:
+    # we need this to take into account that n is a rounded number:
     time_state[0] = last_t + deltat * n
     
     # t6 = time.time()
@@ -335,51 +347,13 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
     msk[-num_ghosts:] = 0
     point = 10
 
-    # deb_state = [chi, a, b, K, AX, X, Lambda, lapse, beta, br, D, E, S ]
+    # deb_state = [chi, a, b, K, AX, X, Lambda, lapse, beta, br, phi, psy, Pi ]
     # print(f"\n\nstate at time {t_i}:")
     # for iv, var in enumerate(deb_state):
     #     print(f'{variable_names[iv]}  ->  {var[point]}  : ', np.mean(var[msk]), np.std(var[msk]), np.min(var[msk]), np.max(var[msk]) )
-    
-    # print(f'rho, Sa, Sb  -> {matter_rho[point]}  {matter_Sa[point]}  {matter_Sb[point]} ' ) 
-    
-    # print(f'P, Jr  -> {P[point]}  {matter_Jr[point]}  {matter_Si[point]} ' )    
-
-
-    
-    
-
-    # derivs = [dadr, dbdr, d2adr2, d2bdr2, dchidr, d2chidr2, dLambdadr]
-    # for iv, var in enumerate(derivs):
-    #     print(f'deriv {iv}  ->  {var[point]}  : ', np.mean(var[msk]), np.std(var[msk]), np.min(var[msk]), np.max(var[msk]) )
-
-
-
-    ricci_scalar = get_ricci_scalar(r, a, b, dadr, dbdr, d2adr2, d2bdr2, em4chi, dchidr, d2chidr2, 
-                     dLambdadr)
-
-    Ham = get_constraint_HamRel(ricci_scalar[mask], Aa[mask], Ab[mask], K[mask], matter_rho)
-    var = Ham
-    print(f'   Ham  ->  {Ham[point]}  : ', np.mean(var), np.std(var), np.min(var), np.max(var) )
-    var = ricci_scalar
-    print(f'ricci ->  {var[point]}  : ', np.mean(var[msk]), np.std(var[msk]), np.min(var[msk]), np.max(var[msk]) )
-    var = Aa
-    print(f'Aa ->  {var[point]}  : ', np.mean(var[msk]), np.std(var[msk]), np.min(var[msk]), np.max(var[msk]) )
-    var = K * K *2/3
-    print(f'K term ->  {var[point]}  : ', np.mean(var[msk]), np.std(var[msk]), np.min(var[msk]), np.max(var[msk]) )
-    var = matter_rho *16*np.pi
-    print(f'rho term ->  {var[point]}  : ', np.mean(var), np.std(var), np.min(var), np.max(var) )
-
-
-
-    # print('\n\n t, chi: ', t_i, chi, K )
-    rho = D+E
-    if np.sum(rho!=rho) > 50 : raise()
-    if t_i > 5.000 : raise()
-
-    """
-
-
 
 
     #Finally return the rhs
     return rhs
+    """
+    

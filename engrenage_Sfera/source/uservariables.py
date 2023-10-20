@@ -5,8 +5,6 @@
 # For description of the data structure see https://github.com/GRChombo/engrenage/wiki/Useful-code-background
 
 
-#  chi, a, b, K, AX, X, Lambda, lapse, beta, D, E, S
-
 idx_chi     = 0    # conformal factor of metric
 idx_a       = 1    # 
 idx_b       = 2    # 
@@ -18,23 +16,25 @@ idx_lapse   = 7    # lapse
 idx_beta    = 8    # shift^r
 idx_br      = 9    # br for evolution of beta
 
-idx_phi     = 10    # phi
-idx_Pi      = 11    # Pi
+idx_phi     = 10    # scalar field 
+idx_psy     = 11    # dr scalar field
+idx_Pi      = 12    # dt scalar field
 
 
-NUM_VARS = 12  ## (idx_[last] + 1)
+
+NUM_VARS = 13  ## (idx_[last] + 1)
 
 variable_names = [ "chi", "a", "b", "K", 
                    "AX", "X", "Lambda", 
                    "lapse", "beta", "br", 
-                   "phi", "Pi"]
+                   "phi", "psy", "Pi"]
 
 # parity under r -> -r
 parity = [
-          1, 1, 1, 1,   # chi, a, b, K 
+          1, 1, 1, 1,     # chi, a, b, K 
           1, 1, -1,       # AX, X,  Lambda
           1, -1, -1,      # lapse, beta, br
-          1, 1,           # phi, Pi
+          1, -1,  1,      # phi, psy,  Pi
           ]  
 
 
@@ -43,7 +43,7 @@ parity = [
 # currently only for linear r
 asymptotic_power =   [          ### TODO check
                        0., 0., 0., 0.,    # chi, a, b, K 
-                       0., 0., 0.,         # AX, X, Lambda, 
+                       0., 0., 0.,        # AX, X, Lambda, 
                        0., 0,  0,         # lapse, beta, br
-                       0., 0.,  0.,          # D, E, S
+                       0., 0.,  0.,       # phi, psy,  Pi
                      ]             

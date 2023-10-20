@@ -81,7 +81,7 @@ def get_rhs_X(r, a, b, AX, lapse, X, beta, dr_beta_over_r) :
     return dXdt
 
 
-# Lambda is \hat Lambda^r in Alcubierre
+# Lambda is \hat Lambda^r in Alcubierre  
 def get_rhs_Lambda(r, a, b, dbdr, dchidr, dKdr,  Aa, Ab, dAadr, 
               Lambda, lapse, dlapsedr, Jr, sigma_frame,
               d2betadr2, cov_beta, dr_beta_over_r, dr_cov_beta) :
@@ -189,7 +189,6 @@ def get_rho_bkg(t_over_t_ini, rho_bkg_ini):
 	rho_bkg = rho_bkg_ini * t_over_t_ini**(-2)
 	return rho_bkg
 	
-
 
 
 ##################################################
