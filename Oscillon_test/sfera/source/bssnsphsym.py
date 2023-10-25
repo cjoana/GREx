@@ -13,17 +13,17 @@ print_A_set_one = False
 # chi is the (exponential) conformal factor, that is \gamma_ij = e^{4\chi) \bar gamma_ij
 def get_rhs_chi(lapse, K, cov_beta, sigma_frame) :
 
+
     # Calculate rhs
     dchidt = (- one_sixth * lapse * K 
-              + sigma_frame * cov_beta)    ## 1/6 *cov_beta ??  #TODO 
+              + sigma_frame * one_sixth * cov_beta)    
     
     return dchidt
 
 # this 'a' is the gamma_rr (down indices)
 def get_rhs_a(a, Aa, lapse, dbetadr, cov_beta, sigma_frame) :
 
-    # missing advecs : 2*a*dbetadr
-    dadt = - 2*one_third*sigma_frame*a*cov_beta - 2*lapse*a*Aa
+    dadt = 2*a*dbetadr - 2*one_third*sigma_frame*a*cov_beta - 2*lapse*a*Aa
     
     return dadt
 
@@ -131,12 +131,12 @@ def get_rhs_X(r, a, b, AX, lapse, X, beta, dr_beta_over_r) :
 
 # Lambda is \hat Lambda^r in Alcubierre  
 def get_rhs_Lambda(r, a, b, dbdr, dchidr, dKdr,  Aa, Ab, dAadr, 
-              Lambda, lapse, dlapsedr, Jr, sigma_frame,
+              Lambda, lapse, dlapsedr, Jr, sigma_frame, dbetadr,
               d2betadr2, cov_beta, dr_beta_over_r, dr_cov_beta) :
     
     Xi = 2
 
-    dLambdadt = d2betadr2/a + 2/b*dr_beta_over_r  \
+    dLambdadt = - Lambda* dbetadr + d2betadr2/a + 2/b*dr_beta_over_r  \
               + sigma_frame *one_third * (dr_cov_beta/a + 2*Lambda*cov_beta) \
               - 2/a*(Aa*dlapsedr + lapse*dAadr) \
               + 2*lapse*(Aa*Lambda -2/(r*b)*(Aa-Ab)) \

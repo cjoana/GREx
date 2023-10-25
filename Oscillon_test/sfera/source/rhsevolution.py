@@ -35,7 +35,7 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
     # rho_bkg_ini = params.rho_bkg_ini
 
     # some params  (hardcoded)
-    sigma_frame = 0
+    sigma_frame = 1
     # t_ini = 1. 
 
     # omega = 0.33333333333333333
@@ -66,9 +66,6 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
     
     # Unpack variables from current_state - see uservariables.py
     chi, a, b, K, Aa, AX, X, Lambda, lapse, beta, br, phi, psy, Pi = unpack_state(current_state, N_r) 
-
-    #TODO
-    # beta = beta * 0
 
     em4chi = np.exp(-4*chi)
     # Aa, Ab = get_Aa_Ab(r, AX)             # Use regularization
@@ -205,15 +202,6 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
                                      dchidr[mask], d2chidr2[mask], Lambda[mask], dLambdadr[mask])
 
 
-    # # #### TODO: choose gauge evolution
-    # # ####### rhs Gauge vars
-    eta = 2.0 
-    rhs_br[mask]     = 0.75 * rhs_Lambda[mask] - eta * br[mask]
-    rhs_beta[mask] = br[mask]
-    rhs_lapse[mask]  = - 2.0 * lapse[mask] * K[mask] 
-    # beta = beta * 0
-
-
     # get masked rhs
     m_rhs_chi = get_rhs_chi(lapse[mask], K[mask], cov_beta[mask], sigma_frame)
 
@@ -238,13 +226,20 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
 
 
     m_rhs_Lambda =  get_rhs_Lambda(r[mask], a[mask], b[mask], dbdr[mask], dchidr[mask], dKdr[mask],  Aa[mask], Ab[mask], dAadr[mask], 
-                                    Lambda[mask], lapse[mask], dlapsedr[mask], matter_Jr, sigma_frame,
+                                    Lambda[mask], lapse[mask], dlapsedr[mask], matter_Jr, sigma_frame, dbetadr[mask],
                                    d2betadr2[mask], cov_beta[mask], dr_beta_over_r[mask], dr_cov_beta[mask])
     
     m_rhs_phi, m_rhs_psy, m_rhs_Pi = get_matter_rhs(r[mask], phi[mask], psy[mask], Pi[mask], dpsydr[mask], a[mask], b[mask], dadr[mask], dbdr[mask], em4chi[mask],
                                     dchidr[mask], K[mask], lapse[mask], dlapsedr[mask], dr_lapsePi[mask]) 
     
-    
+
+    # # ####### rhs Gauge vars
+    eta = 2.0 
+    rhs_br[mask]     = 0.75 * m_rhs_Lambda - eta * br[mask]
+    rhs_beta[mask] = br[mask]
+    rhs_lapse[mask]  = - 2.0 * lapse[mask] * K[mask] 
+
+
 
     # Write the RHS into the final arrays    
     rhs_chi[mask] = m_rhs_chi
@@ -263,13 +258,13 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
     # RIGHT side advec (upwind)
     maskR = (beta>0)
     rhs_phi[maskR]      += beta[maskR] * dphidr_advec_R[maskR]
-    rhs_psy[maskR]      += beta[maskR] * dpsydr_advec_R[maskR] + psy[maskR]* dbetadr_advec_R[maskR]
+    rhs_psy[maskR]      += beta[maskR] * dpsydr_advec_R[maskR] + psy[maskR]* dbetadr[maskR]
     rhs_Pi[maskR]       += beta[maskR] * dPidr_advec_R[maskR]
     rhs_chi[maskR]     += beta[maskR] * dchidr_advec_R[maskR]
-    rhs_a[maskR]       += beta[maskR] * dadr_advec_R[maskR] + 2*a[maskR]*dbetadr_advec_R[maskR]
+    rhs_a[maskR]       += beta[maskR] * dadr_advec_R[maskR] 
     rhs_b[maskR]       += beta[maskR] * dbdr_advec_R[maskR]
     rhs_K[maskR]       += beta[maskR] * dKdr_advec_R[maskR]
-    rhs_Lambda[maskR]  += beta[maskR] * dLambdadr_advec_R[maskR] + Lambda[maskR] * dbetadr_advec_R[maskR]
+    rhs_Lambda[maskR]  += beta[maskR] * dLambdadr_advec_R[maskR] 
     rhs_X[maskR]       += beta[maskR] * dXdr_advec_R[maskR]
     rhs_AX[maskR]      += beta[maskR] * dAXdr_advec_R[maskR]
     rhs_Aa[maskR]      += beta[maskR] * dAadr_advec_R[maskR]
@@ -283,13 +278,13 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
     # LEFT side advec (downwind)
     maskL = (beta<0)
     rhs_phi[maskL]      += beta[maskL] * dphidr_advec_L[maskL]
-    rhs_psy[maskL]      += beta[maskL] * dpsydr_advec_L[maskL] + psy[maskL]* dbetadr_advec_L[maskL]
+    rhs_psy[maskL]      += beta[maskL] * dpsydr_advec_L[maskL] + psy[maskL]* dbetadr[maskL]
     rhs_Pi[maskL]       += beta[maskL] * dPidr_advec_L[maskL]
     rhs_chi[maskL]     += beta[maskL] * dchidr_advec_L[maskL]
-    rhs_a[maskL]       += beta[maskL] * dadr_advec_L[maskL] + 2*a[maskL]*dbetadr_advec_L[maskL]
+    rhs_a[maskL]       += beta[maskL] * dadr_advec_L[maskL] 
     rhs_b[maskL]       += beta[maskL] * dbdr_advec_L[maskL]
     rhs_K[maskL]       += beta[maskL] * dKdr_advec_L[maskL]
-    rhs_Lambda[maskL]  += beta[maskL] * dLambdadr_advec_L[maskL] + Lambda[maskL] * dbetadr_advec_L[maskL]
+    rhs_Lambda[maskL]  += beta[maskL] * dLambdadr_advec_L[maskL] 
     rhs_X[maskL]       += beta[maskL] * dXdr_advec_L[maskL]
     rhs_AX[maskL]      += beta[maskL] * dAXdr_advec_L[maskL]
     rhs_Aa[maskL]      += beta[maskL] * dAadr_advec_L[maskL]
@@ -390,7 +385,7 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
     # for iv, var in enumerate(deb_state):
     #     print(f'{variable_names[iv]}  ->  {var[point]}  : ', np.mean(var[msk]), np.std(var[msk]), np.min(var[msk]), np.max(var[msk]) )
     """
-    DEBUG = False
+    DEBUG = True
 
     if DEBUG:
         idr = num_ghosts +1
@@ -401,16 +396,17 @@ def get_rhs(t_i, current_state, params, sigma, progress_bar, time_state) :
         print(f"chi = {chi[idr]}  "+  f"dchi = {rhs_chi[idr]}" )
 
         print(f"K = {K[idr]}  "+  f"da = {rhs_K[idr]}")
+        print(f"beta = {beta[idr]}  "+  f"da = {rhs_beta[idr]}")
+        print(np.mean(np.abs(beta)) , np.mean(np.abs(br))   )
+
+        # print(f"a -1 = {a[idr]-1}  "+  f"da = {rhs_a[idr]}")
+        # print(f"b -1 = {b[idr]-1}  "+   f"db = {rhs_b[idr]}" )
+
+        # print(f"Arr = {Aa[idr] * a[idr]}  ")
 
 
-        print(f"a -1 = {a[idr]-1}  "+  f"da = {rhs_a[idr]}")
-        print(f"b -1 = {b[idr]-1}  "+   f"db = {rhs_b[idr]}" )
-
-        print(f"Arr = {Aa[idr] * a[idr]}  ")
-
-
-        idr = idr - num_ghosts
-        print(f"rho, S = {matter_rho[idr]},  {matter_Sa[idr] + 2*matter_Sb[idr]},  {(matter_Sa[idr] + 2*matter_Sb[idr])/matter_rho[idr]/3}  ")
+        # idr = idr - num_ghosts
+        # print(f"rho, S = {matter_rho[idr]},  {matter_Sa[idr] + 2*matter_Sb[idr]},  {(matter_Sa[idr] + 2*matter_Sb[idr])/matter_rho[idr]/3}  ")
 
 
         print("\n")
