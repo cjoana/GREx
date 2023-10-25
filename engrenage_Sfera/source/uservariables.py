@@ -6,8 +6,8 @@
 
 
 idx_chi     = 0    # conformal factor of metric
-idx_a       = 1    # 
-idx_b       = 2    # 
+idx_a       = 1    # 'a' is the gamma_rr (down indices)
+idx_b       = 2    # 'b' is the gamma_\theta\theta / r^2
 idx_K       = 3    # mean curvature K
 idx_AX      = 4    # A_lambda in alcubierre's paper
 idx_X       = 5    # lambda in alcubierre's paper 
