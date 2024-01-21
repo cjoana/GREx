@@ -1,0 +1,123 @@
+# Params for variable coefficient multigrid solver, solving the eqn
+# alpha*aCoef(x)*I - beta*bCoef(x) * laplacian = rhs
+
+# The default setup allows for 2 BHs (Bowen York data) in the presence
+# of a scalar field configuration, with either periodic BCs (constant K
+# set by integrability conditions) or asymptotically flat (constant K=0,
+# dirichlet BCs should be set to dpsi=0)
+
+# spatially-varying aCoef and bCoef are set in the example itself
+# see SetLevelData.cpp, we expect alpha = 1 and beta = -1
+# (for pure laplacian, alpha = 0, beta=-1)
+alpha = 1.0
+beta  = -1.0
+
+# AMR grid params - grid length and number of cells by direction
+L = 128
+N = 128 128 128
+# number of AMR refinement levels is max_level + 1
+max_level    = 3
+# Threshold for AMR refinement, based on magnitude of rhs
+refine_threshold = 0.5
+# fixed grid around some radius?
+regrid_radius = 14
+
+#min box size
+block_factor = 32
+#max box size
+max_grid_size = 32
+# how aggressively to regrid
+fill_ratio   = 0.0
+buffer_size  = 3
+
+# Setup multigrid params
+numMGsmooth = 4 # number of GSRB smooths before and after MG coarsening
+#preCondSolverDepth = 1
+num_mg     = 1
+numMGIterations = 4 #this is the number of MG v-cycles in the preconditioner
+max_iterations = 100 #max number of solver iterations
+max_NL_iterations = 100 #non linear outside loop iterations
+tolerance  = 5.0e-7  #solver tolerance for declaring convergence
+hang       = 1.0e-11  #solver tolerance for deciding when we're hung
+verbosity = 2 # higher number means more verbose output
+
+# how to average face-centered coefficients to coarser multigrid levels
+#coefficient_average_type = arithmetic
+coefficient_average_type = harmonic
+
+# Boundary conditions for domain-boundary faces 
+# 0 for non periodic, 1 for periodic
+is_periodic = 0 0 0
+# Now set how to fill the ghosts in GRChombo outputs
+# and between NL iterations
+# 0 = extrapolating, with zero dpsi and zero gradient dVi at boundaries
+# 1 = reflective, with parity set as in UserVariables files
+hi_boundary = 0 0 0
+lo_boundary = 0 0 0
+# this order is used to fill ghosts for K and Aij, usually linear
+# and for GRChombo vars where fewer ghosts than solver
+extrapolation_order = 1
+
+# Q: "Simple, change the gravitational constant of the Universe"
+G_Newton = 1.0 
+
+# Read from hdf5 file?
+#input_filename = Outputs/SourceData_chk000001.3d.hdf5
+#input_filename = Outputs/SourceData_plt000001.3d.hdf5
+output_path = Outputs/
+output_filename = InitialConditionsFinal.3d.hdf5
+
+# scalar field input params
+gaussian_exists = 1
+phi_0 = 0.0
+phi_amplitude = 1e-4
+phi_wavelength = 5.0
+pi_0 = 0.0
+pi_amplitude = 1e-5
+pi_wavelength = 5.0
+
+n_swirl_phi = 1
+n_swirl_pi = 1
+
+# potential params
+pot_Lambda = 1e-2
+pot_mu = 1.0
+
+# in asymptotically flat space set
+# initial scale factor a0 = psi_reg**2
+psi_reg = 1.0
+# positive K means collapsing, negative expanding
+sign_of_K = 1
+
+
+# choose the solver method
+# non-compact source 0, compact source 1
+method_compact = 1
+
+# for fully reflective or periodic, you might need to deactivate zero mode (only if solving for psi)
+deactivate_zero_mode = 0
+
+# do you want to include A^2 in K^2 and not solve Ham constraint for psi?
+include_A2 = 0
+
+# initial conditions for Bowen York binary BH spacetimes
+# can be with or without periodic BCs (assuming periodicity is consistent), 
+# if you don't want BHs just set masses and momenta/spins to zero
+
+#BH1
+bh1_bare_mass = 1.0
+# spin about each axis (this is J_i)
+bh1_spin = 0.0 0.0 0.5
+# boost in each direction (this is P_i)
+bh1_momentum = 0.0 0.0 0.0
+# offset from center in x direction
+bh1_offset = 0.0 0.0 0.0
+
+#BH2
+bh2_bare_mass = 0.0
+# spin about each axis (this is J_i)
+bh2_spin = 0.0 0.0 0.0
+# boost in each direction (this is P_i)
+bh2_momentum = 0.0 0.0 0.0
+# offset from center (coords x^i)
+bh2_offset = 0.0 0.0 0.0
