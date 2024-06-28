@@ -22,7 +22,7 @@ boxes = dict()
 data_attributes = dict()
 
 # basic params  (MANUAL)
-params['N'] = 512 #changed
+params['N'] = 64 #changed
 params['L'] = 1e6
 params['dt_multiplier'] = 0.01
 params['is_periodic'] = [1, 1, 1]
@@ -61,7 +61,7 @@ components = np.array([
 base_attrb['time'] = 0.0 # float!
 base_attrb['iteration'] = 0
 base_attrb['max_level'] = 4
-base_attrb['num_levels'] = 1  # min = 1
+base_attrb['num_levels'] = 2  # min = 1
 base_attrb['num_components'] = components.size
 base_attrb['regrid_interval_0'] = 2
 base_attrb['steps_since_regrid_0'] = 0
@@ -70,13 +70,14 @@ for comp, name in enumerate(components):
     tt = 'S' + str(len(name))
     base_attrb[key] = np.array(name, dtype=tt)
 
+
 # Set boxes, for each level (MANUAL)
 bend = params['N']-1
 boxes["level_0"] = make_boxes([0,0,0,bend,bend,bend],box_size=32)  #changed
 
-# bini = 64 - 2*8
-# bend = bini + 4*8 -1
-# boxes["level_1"] = make_boxes([bini,bini,bini,bend,bend,bend],box_size=8)
+bini = 64 - 2*8
+bend = bini + 4*8 -1
+boxes["level_1"] = make_boxes([bini,bini,bini,bend,bend,bend],box_size=8)
 
 # bini = 128 - 2*8
 # bend = bini +4*8-1
