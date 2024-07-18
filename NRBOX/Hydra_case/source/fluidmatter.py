@@ -1,6 +1,12 @@
 # mymatter.py
-# Calculates the matter rhs and stress energy contributions
-# this assumes spherical symmetry
+# Calculates the matter rhs and stress energy contributions using
+# prescription in Alcubierre's book.
+# this assumes perfect fluid in spherical symmetry.
+
+# Indices: 
+# V is upper : V^r 
+# S is lower : S_r
+# Other tensors varnames are like hRR = h^{rr}, hrr = h_{rr} , CRuv = C^r_{uv}
 
 import numpy as np
 from source.tensoralgebra import *
@@ -13,9 +19,10 @@ def get_matter_rhs(r, D, E, S, V, P,
     # Assuming that S = S_i  with down indices 
     # Assuming no spin:   V_theta = V_phi = 0
 
-    # Covariant derivatives :  Dk_(S_r)  and Dk_(V^k)  where k goes from r, theta, phi.
-    covS = dSdr - S*(2*dchidr + 0.5*dadr/a)                   # contains Chris_Rrr.   (Chris_Trt, Chris_Prp are zero) 
-    covV = dVdr - V * (6*dchidr + 0.5*dadr/a + dbdr/b + 2/r)  # contains Chris_Rrr, Chris_Trt, Chris_Prp
+    # Covariant derivatives :  Dk_(S_r)  and Dk_(V^k)  where k goes from r, theta, phi. 
+    covS = dSdr - S*(2*dchidr + 0.5*dadr/a)                   # contains Chris_Rrr.   
+    #                                                         #  (terms with Chris_Trt, Chris_Prp are zero due to Si=Sr) 
+    covV = dVdr + V * (6*dchidr + 0.5*dadr/a + dbdr/b + 2/r)  # contains Chris_Rrr, Chris_Ttr, Chris_Ppr
    
     K_rr = a/em4chi *(Aa + K/3)
 
@@ -58,18 +65,19 @@ def get_diag_Sij(r, a, b, D, E, V, P, em4chi):
 
     Srr = rhohW2 *V_r*V_r + P*hrr
     Stt = P*htt
-    Spp = Srr
+    Spp = Stt
 
     return Srr, Stt, Spp 
 
 
 def get_Sa_Sb(r, a, b, D, E, V, P, em4chi):
+	
     # getting S_ij with lower indices 
-
     rhohW2 = E + D + P
     hrr = a/em4chi
     htt = r*r*b/em4chi
     # hpp = r*r*b # assuming sin\theta = 1
+    
     V_r = hrr * V
 
     Srr = rhohW2 *V_r*V_r + P*hrr
@@ -122,13 +130,12 @@ def get_rhofluid_pressure_W_velocity(D, E, S, a, em4chi, omega):
     fl_dens = ((omega -1)*(E+D) + (in_sqrt)**0.5 )/(2*omega)
     pressure = fl_dens*omega
     
-    floor = 1e-8
+    floor = 1e-16
     
     Lorentz= (fl_dens + pressure)/(E+D+pressure + floor)
     W = 1/Lorentz
 
     rhohW2 = D + E + pressure
-    hRR = em4chi/(a + floor)
     V_R = S * hRR / (rhohW2 + floor)
 
 
@@ -148,36 +155,50 @@ def get_R(r, scalefactor, zeta, b=1):  ## Areal Radius
 def get_M(r, rho, R, dRdr):
     
     # # Use cumsum
-    # dr = np.zeros_like(r)
-    # dr[:-1] = np.diff(r)
-    # integrant =  R*R*rho*dRdr
-    # Mass = np.cumsum(integrant) * 4*np.pi *dr[0]
+    dr = np.diff(r)
+    integrant =  R*R*rho*dRdr
+    Mass = np.cumsum(integrant) * 4*np.pi *dr[0]
 
-    # Use integrate
-    from scipy import integrate
-    from scipy import interpolate
+    # # Use integrate
+    # from scipy import integrate
+    # from scipy import interpolate
     
-    dr = np.diff(r)[0]
-    integrant_r =  R*R*rho*dRdr* 4*np.pi 
-    x = r
-    y = integrant_r
-    # integrant_R = rho*R*R* 4*np.pi       # problematic for PBH_2 (non-monotonic R)
-    # x = R
-    # y = integrant_R
-    f = interpolate.interp1d(x, y, kind='quadratic')
-    Mass = np.array([integrate.quad(f, 0., np.abs(x_i), limit=10000)[0] for x_i in x])
+    # dr = np.diff(r)[0]
+    # integrant_r =  R*R*rho*dRdr* 4*np.pi 
+    # x = r
+    # y = integrant_r
+    # # integrant_R = rho*R*R* 4*np.pi       # problematic for PBH_2 (non-monotonic R)
+    # # x = R
+    # # y = integrant_R
+    # f = interpolate.interp1d(x, y, kind='quadratic')
+    # Mass = np.array([integrate.quad(f, 0., np.abs(x_i), limit=10000)[0] for x_i in x])
 
     return Mass 
 
 
-def compact_function(M, R, rho_bkg):
-    C =  2*M/R  - (8./3.)*np.pi*rho_bkg * R**2   
+def compact_function(r, M, R, dRdr, rho_bkg):
+
+    # # Use cumsum
+    dr = np.diff(r)
+    integrant =  R*R*rho_bkg*dRdr
+    Mbkg = np.cumsum(integrant) * 4*np.pi *dr[0]
+
+    C =  2*(M-Mbkg)/R
+
+    # C =  2*M/R  - (8./3.)*np.pi*rho_bkg * R**2   
     return C  #  *2/3
 
 def get_CompactionSS(chi, dRdr, b=1, scalefactor=1, omega=1./3):
     fomega = 3*(omega+1)/(5+3*omega)   * np.ones_like(chi)   # sometimes fomega is set to 0.5 (arxiv:2401.06329)
     # fomega = 0.5
     CSS = fomega*(1 - (np.exp(-2*chi) * dRdr)**2 )    # divde by b? :  dRdr)**2/b
+
+    return CSS
+
+def get_Compaction(r, dRdr,  omega=1./3):
+
+    Cl = -6*(omega+1)/(5+3*omega) * r * dRdr
+    CSS = Cl * (1 - (5+3*omega)/(12*(1+omega))*Cl )
 
     return CSS
 
@@ -218,4 +239,4 @@ def get_int_Compaction(r, rho, R, dRdr, drho):
 def get_beta_comoving(r, K, lapse):
     beta =   K/3 * r*lapse
     # beta[beta**2>0.8] = -0.8
-    return beta  * 0
+    return beta  

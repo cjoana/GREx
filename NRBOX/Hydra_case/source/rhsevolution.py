@@ -38,7 +38,7 @@ def get_rhs(t_i, current_state, prev_state, params, sigma, progress_bar, time_st
     a_ini = params.a_ini
 
     # some params  (hardcoded)
-    sigma_frame = 0
+    sigma_frame = 1
     t_ini = 1. 
 
     omega = 0.33333333333333333
@@ -86,52 +86,49 @@ def get_rhs(t_i, current_state, prev_state, params, sigma, progress_bar, time_st
 
 
 
-
     if True:  # Asymtotics 
-
-        
-        asym_chi =  np.log(get_scalefactor(t_i, omega, a_ini, t_ini))*0.5  
+        # asym_chi =  np.log(get_scalefactor(t_i, omega, a_ini, t_ini))*0.5  
         asym_a = 1
         asym_b = 1
-        asym_Aa = 0
-        asym_AX = 0 
-        asym_X = 0
+        # asym_Aa = 0
+        # asym_AX = 0 
+        # asym_X = 0
         asym_Lambda = 0
-        asym_K =  -3 * get_Hubble(t_i, omega, t_ini=t_ini)
+        asym_K =  np.nanmean(K)
         asym_lapse = 1.
         asym_beta = 0 
         asym_br = 0
-        asym_E =   get_rho_bkg(t_i/t_ini, rho_bkg_ini)
-        asym_D = 0
-        asym_S = 0 
+        asym_E =   asym_K**2 / 24/np.pi
+        # asym_D = 0
+        # asym_S = 0 
 
-        scalefactor = get_scalefactor(t_i, omega, a_ini, t_ini)
+        # scalefactor = get_scalefactor(t_i, omega, a_ini, t_ini)
 
 
         # some fixes with boundaries
         maskFIX = np.zeros_like(a, dtype=bool)
-        idx = -num_ghosts-1  - 30
+        idx = -num_ghosts-1  - 10
         maskFIX[idx:] = 1
 
 
-        chi[maskFIX] =  np.log(scalefactor)*0.5  
+        # chi[maskFIX] =  np.log(scalefactor)*0.5  
 
         a[maskFIX] =   asym_a
         b[maskFIX] =   asym_b
-        Aa[maskFIX] =  asym_Aa
-        AX[maskFIX] =  asym_AX
-        X[maskFIX] =  asym_X
+        # Aa[maskFIX] =  asym_Aa
+        # AX[maskFIX] =  asym_AX
+        # X[maskFIX] =  asym_X
         Lambda[maskFIX] = asym_Lambda
         K[maskFIX] =  asym_K
         lapse[maskFIX] = asym_lapse
         beta[maskFIX] = asym_beta
         br[maskFIX] = asym_br
+
         E[maskFIX] = asym_E
-        D[maskFIX] = asym_D
-        S[maskFIX] = asym_S
+        # D[maskFIX] = asym_D
+        # S[maskFIX] = asym_S
 
         # pack_state(current_state, N_r, chi, a, b, K, Aa, AX, X, Lambda, lapse, beta, br, D, E, S)
-
 
 
     floor = 1e-20
@@ -294,6 +291,59 @@ def get_rhs(t_i, current_state, prev_state, params, sigma, progress_bar, time_st
 
    
 
+
+    ## Let's cheat a bit!   !!!
+    #    Note that I am not changing E in the current_state, therevore the "corrected E"
+    #    is used only to optimize the RHS values during the evolution, 
+    #    in a way, compensating num. noise. That's why Ham is not 0.
+    # if t_i <= 1000:
+    if t_i >= 1:
+        
+        drho = ricci_scalar #          drho = (D+E) *16*np.pi - 2/3*K*K 
+        error = get_constraint_Ham(ricci_scalar, Aa[mask], Ab[mask], K[mask], D[mask]+E[mask]) * 0.95
+
+        E_o = np.copy(E)
+        E[mask] +=  error/(2*eight_pi_G)
+        # E[:10] = E_o[:10]
+
+        # E[:num_ghosts] = E[num_ghosts:2*num_ghosts][::-1]
+        # E[-num_ghosts:] = E[-2*num_ghosts:-num_ghosts][::-1]
+
+        # Do not mess boundary contidions! 
+        E[:20] = E_o[:20]
+        E[-100:] = E_o[-100]
+        
+        # Ham = get_constraint_Ham(ricci_scalar, Aa[mask], Ab[mask], K[mask], D[mask]+E[mask])
+        # print(t_i, np.max(E), np.max(Ham) )
+        # print(t_i, np.max(np.abs(E - E_o))/np.max(E) , '\n')
+        
+        dEdr  = get_dfdx(E, oneoverdx)
+        dEdr_advec_L        = get_dfdx_advec_L(E, oneoverdx)
+        dEdr_advec_R        = get_dfdx_advec_R(E, oneoverdx)
+
+        
+        # convert conserved variables to fluid variables 
+        rhofluid, P, W, V = get_rhofluid_pressure_W_velocity(D, E, S, a, em4chi, omega)
+        dPdr       = get_dfdx(P, oneoverdx)
+        dVdr       = get_dfdx(V, oneoverdx)
+    
+        # Matter sources - see mymatter.py                                                                       
+        matter_rho      = get_rho( D[mask], E[mask] )
+        matter_Sa, matter_Sb  = get_Sa_Sb(r[mask], a[mask], b[mask], D[mask], E[mask], V[mask], P[mask], em4chi[mask])
+        
+        # pack_state(current_state, N_r, chi, a, b, K, Aa, AX, X, Lambda, lapse, beta, br, D, E, S)
+        # fill_outer_boundary(current_state, dx, N, r_is_logarithmic)
+
+
+
+
+
+
+
+
+
+
+
     # get masked rhs
 
     m_rhs_chi = get_rhs_chi(lapse[mask], K[mask], cov_beta[mask], sigma_frame)
@@ -326,16 +376,21 @@ def get_rhs(t_i, current_state, prev_state, params, sigma, progress_bar, time_st
                                                 em4chi[mask], K[mask], Aa[mask], lapse[mask], dlapsedr[mask])
 
     ####### rhs Gauge vars
-    ld = np.zeros_like(E)
+    ld = np.ones_like(E)
     if evolve_gauge: 
-        eta_gauge = 0.01  #### !!! put 1/M here?? 
-        lambda_driver = -0.01 * ld[mask]
-        ld[-100:]= 0
+        eta_gauge = 1  #### !!! put 1/M here?? 
+        lambda_driver = 0.75 * ld[mask]
+        # ld[-100:]= 0
         rhs_br[mask]     = lambda_driver * m_rhs_Lambda - eta_gauge * br[mask]
         rhs_beta[mask] = br[mask]
-        # Kmean_gauge = np.nanmean(K[mask])
-        rhs_lapse[mask]  = - 2.0 * lapse[mask] * (K[mask] - asym_K)
+        Kmean_gauge = np.nanmean(K[mask])
+        rhs_lapse[mask]  = - 2 * lapse[mask] * (K[mask] - Kmean_gauge)
     
+
+
+
+
+    ########################################################################
 
     # Write the RHS into the final arrays    
     rhs_chi[mask] = m_rhs_chi
@@ -368,7 +423,7 @@ def get_rhs(t_i, current_state, prev_state, params, sigma, progress_bar, time_st
 
     # NB optional to add advection to lapse and shift vars
     if evolve_gauge: 
-        rhs_lapse[maskR]        += beta[maskR] * dlapsedr_advec_R[maskR]
+        rhs_lapse[maskR] += 0.0 # beta[maskR] * dlapsedr_advec_R[maskR]
         rhs_br[maskR]    += 0.0
         rhs_beta[maskR]  += 0.0
 
@@ -389,7 +444,7 @@ def get_rhs(t_i, current_state, prev_state, params, sigma, progress_bar, time_st
 
     # NB optional to add advection to lapse and shift vars
     if evolve_gauge: 
-        rhs_lapse[maskL]        += beta[maskL] * dlapsedr_advec_L[maskL]            
+        rhs_lapse[maskL] += 0.0 # beta[maskL] * dlapsedr_advec_L[maskL]            
         rhs_br[maskL]    += 0.0
         rhs_beta[maskL]  += 0.0
     
@@ -404,8 +459,8 @@ def get_rhs(t_i, current_state, prev_state, params, sigma, progress_bar, time_st
 
     ####################################################################################################
 
-    # outfix = "Reflective" #   "None", "asymtotic" 
-    outfix = "asymtotic"
+    outfix = "Reflective" #   "None", "asymtotic" 
+    #outfix = "asymtotic"
 
 # def get_scalefactor(t, omega, a_ini, t_ini):
 # def get_Hubble(t, omega, t_ini=1):
@@ -540,10 +595,16 @@ def get_rhs(t_i, current_state, prev_state, params, sigma, progress_bar, time_st
     # fill_reflective_outer_boundary(current_state, dx, N, r_is_logarithmic)
     # fill_outer_boundary_ivar(current_state, dx, N, r_is_logarithmic, 0)
     # fill_outer_boundary_ivar(current_state, dx, N, r_is_logarithmic, 3)
-    # fill_outer_boundary(current_state, dx, N, r_is_logarithmic)
+
+    # Asymptotic
+    fill_outer_boundary(current_state, dx, N, r_is_logarithmic)
+    fill_outer_boundary(rhs, dx, N, r_is_logarithmic)
 
     # overwrite inner cells using parity under r -> - r
     fill_inner_boundary(rhs, dx, N, r_is_logarithmic)
+    
+    # fill_reflective_outer_boundary(current_state, dx, N, r_is_logarithmic)
+    # fill_reflective_outer_boundary(rhs, dx, N, r_is_logarithmic)
     
     # t5 = time.time()
     # print("Fill arroundaries done in ", t5 - t4) 

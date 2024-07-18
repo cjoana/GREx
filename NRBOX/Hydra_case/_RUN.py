@@ -16,7 +16,7 @@ import os
 #sys.path.append('./engrenage_MSPBH/')
 sys.path.append('../')
 
- 
+
 # from source._par_rhsevolution import *  # go here to look at how the evolution works
 from source.rhsevolution import *             # go here to look at how the evolution works
 from source.initialdata import *              # go here to change the initial conditions
@@ -25,6 +25,15 @@ from source.initialdata import *              # go here to change the initial co
 params = Munch(dict())
 # cosmology
 
+
+
+##### change initial data params 
+idata_params.nu = 0.64
+idata_params.fNL = 0.0
+idata_params.n_Horizons= 20 * idata_params.t_0
+
+
+TMAX = 3000000
 
 # initial time
 params.t_0 = idata_params.t_0
@@ -39,11 +48,11 @@ params.rho_bkg_ini =  3./(8.*np.pi) *params.H_ini**2
 
 # grid
 params.N_r = 1000
-params.r_max = 1000 * params.H_ini
+params.r_max = 33 * params.H_ini * idata_params.n_Horizons
 #params.r_max = 200 / params.H_ini
 params.r_is_logarithmic = False
-params.sigma_factor = 1
-params.dt_multiplier = 0.02   
+params.sigma_factor = 1     # Kreiss oliger dissipation
+params.dt_multiplier = 0.1   
 params.dx = params.r_max/params.N_r
 params.dt0 = params.dx * params.dt_multiplier
 
@@ -56,7 +65,7 @@ h5_filename = './out_{nu}.hdf5'.format(nu=int(idata_params.nu*10**6), t0=int(par
 if not os.path.exists(plotdir): os.makedirs(plotdir)
 
 #plotting
-tmax =30000
+tmax = 300000
 num_points = 10
 
 
@@ -67,8 +76,8 @@ r, initial_state = get_initial_state(params, idata_params)
 
 #unpackage the vector for readability
 (initial_chi, initial_a , initial_b, initial_K, initial_Aa, initial_AX, initial_X,
- initial_Lambda, initial_lapse, initial_beta, initial_br, 
- intial_D, initial_E, initial_S) = unpack_state(initial_state, N_r)
+initial_Lambda, initial_lapse, initial_beta, initial_br, 
+intial_D, initial_E, initial_S) = unpack_state(initial_state, N_r)
 
 
 rm =  get_rm(params, idata_params)   ###
@@ -76,150 +85,6 @@ oneoverdx  = 1.0 / params.dx
 oneoverdxsquared = oneoverdx * oneoverdx
 
 
-# Plot initial data
-if True:
-    
-    fig, axs = plt.subplots(2,4, figsize=(17,8))
-
-    current_state = initial_state
-    chi, a, b, K, Aa, AX, X, Lambda, lapse, beta, br, D, E, S = unpack_state(current_state, N_r) 
-    
-    t_here = params.t_ini 
-    rho_bkg = get_rho_bkg(t_here, params.rho_bkg_ini) 
-    scalefactor = get_scalefactor(t_here, params.omega,params.a_ini, params.t_ini)
-
-    print("scale factor: ", scalefactor, params.a_ini)
-
-    rho = get_rho(D, E) 
-    
-    R = get_R(r, scalefactor, chi,b)
-    dRdr = get_dfdx(R, oneoverdx)
-    M = get_M(r, rho, R, dRdr)
-    dMdr = get_dfdx(M, oneoverdx)
-
-    C = compact_function(M, R, rho_bkg)
-    CSS = get_CompactionSS(chi, dRdr)
-            
-    HamAbs = ((dMdr)**2 +  (4*np.pi*rho*R**2 * dRdr)**2)**0.5        
-    # Ham = np.abs((dMdr - 4*np.pi*rho*R**2 * dRdr))
-    Ham = np.abs((dMdr - 4*np.pi*rho*R**2 * dRdr) / HamAbs)
-    
-    
-    omega = get_omega()
-    t_ini = params.t_ini
-    a_ini = params.a_ini
-    
-    # f_t = 2*M/R
-    f_t = C
-    
-    r_over_rm = r /rm
-    
-    ln = len(r)
-    ax = axs[0,0]
-    ax.plot(r_over_rm[:], f_t[:],'k')
-    #
-    ax.plot(r_over_rm[:], CSS, 'g--')
-    #
-    kstar = get_kstar(params, idata_params)
-    Rprime_over_a_ezeta = ( 1 + r * get_dzetadr(r, kstar) ) 
-    C_v2 = 3*(1+omega)/(5+3*omega) *( 1 - Rprime_over_a_ezeta**2)
-    ax.plot(r_over_rm[:], C_v2, 'r--')
-    #
-    ax.set_ylim(-2,1.5)
-    ax.set_ylabel('C')
-    ax.set_xlim(0,3)
-    
-    ax = axs[0,1]
-    f_t = 2*M/R
-    ax.plot(r_over_rm[:], f_t[:])
-    ax.set_ylim(0,1.5)
-    ax.set_xlim(0,1.5)
-    ax.legend()
-    ax.set_ylabel('2*M/R')
-    ax.set_xlim(0,3)
-    
-    ax = axs[1,0]
-    f_t = R
-    ax.plot(r_over_rm[:], f_t[:])
-    #
-    k_star = get_kstar(params, idata_params)
-    R_v2 = get_expansion_R(t_ini, r, rm, omega, 0, params)
-    zeta = get_zeta(r, kstar)
-    R_v2 = a_ini * np.exp(zeta) *r
-    ax.plot(r_over_rm[:], R_v2, 'r--')
-    #
-    ax.set_ylim(0.1,1e4)
-    # ax.set_xscale('log')
-    ax.set_yscale('log')
-    ax.set_ylabel('R')
-    ax.set_xlim(0,8)
-    
-    U = np.zeros_like(rho)
-    
-    ax = axs[1,1]
-    f_t = U
-    ax.plot(r_over_rm[:], f_t[:])
-    # ax.set_ylim(0.1,1e4)
-    # ax.set_yscale('log')
-    ax.set_ylabel('U')
-    
-    ax = axs[0,2]
-    f_t = M
-    ax.plot(r_over_rm[:], f_t[:])
-    # ax.set_ylim(0.1,1e4)
-    # ax.set_xscale('log')
-    ax.set_yscale('log')
-    ax.set_ylabel('M')
-    
-    ax = axs[1,2]
-    f_t = rho
-    ax.plot(r_over_rm[:], f_t[:])
-    # rho_check = dMdr/(dRdr* 4*np.pi*R**2 +1e-5)
-    # ax.plot(r_over_rm, rho_check)
-    # ax.set_ylim(0.1,1e4)
-    ax.set_ylabel('rho')
-    # ax.set_xscale('log')
-    ax.set_yscale('log')
-    
-    
-    ax = axs[0,3]
-    f_t = dRdr
-    ax.plot(r_over_rm[:], f_t[:])
-    #
-    k_star = get_kstar(params, idata_params)
-    Rprime = ( 1 + r * get_dzetadr(r, kstar) ) * a_ini * np.exp(get_zeta(r, kstar))      # R = a ezeta(r) * r ,   Rprime =  a ezeta r zetaprime + a ezeta = (1 + r zetaprime) * a ezeta
-    ax.plot(r_over_rm[:], Rprime, 'r--')
-    #
-    # ax.set_ylim(0.1,1e4)
-    ax.set_ylabel('dRdr')
-    ax.set_xlabel('r')
-    # ax.set_xscale('log')
-    ax.set_yscale('log')
-    ax.set_xlim(0,3)
-        
-    ax = axs[1,3]
-    f_t = Ham
-    ax.plot(r_over_rm[:], f_t[:])
-    ax.set_ylabel('Ham')
-    ax.set_yscale('log')
-        
-    plt.tight_layout()
-    plt.savefig(plotdir + 'initial_data_example.png', dpi=100)
-    plt.clf()
-    plt.close()
-
-
-
-# Start evolution part 
-import time
-
-start = time.time()
-
-
-for key in params.keys():
-    print(f" {key} : {params[key]}") 
-for key in idata_params.keys():
-    print(f" {key} : {idata_params[key]}") 
 
 
 def create_attrib_h5file(h5_filename): 
@@ -258,14 +123,14 @@ def restart_from_h5file(h5_filename, params, idata_params, start_from = False,\
         for key in idata_params.keys():
             idata_params[key] = h5file.attrs[key]
             print(f" {key} : {idata_params[key]}")
-             
+            
     # rerun! 
     rk4(tn, yn, params, h5_filename, \
                 max_iterations, max_t, iter_output, cnt = int(start_it)+1)
 
 
 def load_simdata(h5_filename, params, idata_params):
-	
+    
     with h5py.File(h5_filename, "r") as h5file:
         datalev = h5file["data"] 
         keys = datalev.keys()
@@ -283,7 +148,7 @@ def load_simdata(h5_filename, params, idata_params):
             print(f" {key} : {idata_params[key]}")
         
         return times, solutions
-	
+    
 
 
 # RK-4 method
@@ -291,8 +156,8 @@ def rk4(t0, y0, params, h5_filename=None,
         max_iterations=10000, max_t=1000, iter_output=1000, cnt=0):
     
     def f(t_i,current_state, prev_state, progress_bar, sigma, dt):
-         # return rhs coded in rhsevolution.py
-         return get_rhs(t_i, current_state, prev_state,  \
+        # return rhs coded in rhsevolution.py
+        return get_rhs(t_i, current_state, prev_state,  \
                         params,  \
                         sigma, progress_bar, [params.t_ini, dt])
             
@@ -310,7 +175,7 @@ def rk4(t0, y0, params, h5_filename=None,
     print('\n Starting RK4 integration...\n')
     
     with tqdm(total=max_t, unit=" ") as progress_bar:
-         for i in range(max_iterations):
+        for i in range(max_iterations):
 
             # Save solutions
             if (i%iter_output==0) and h5_filename and print_start:                                     
@@ -332,8 +197,12 @@ def rk4(t0, y0, params, h5_filename=None,
             
             
             # Calculating step size
-            dt = dt0   * t0**0.5
-            sigma = sigma_factor/ dt_multiplier / t0**0.5
+            if False:
+                dt = dt0   * t0**0.5
+                sigma = sigma_factor/ dt_multiplier / t0**0.5
+            else:
+                dt = dt0 
+                sigma = sigma_factor/ dt_multiplier 
 
             # print("here:: ", f(t0, y0, progress_bar))        
             k1 = dt * f(t0, y0, yprev, progress_bar, sigma, dt)
@@ -354,133 +223,117 @@ def rk4(t0, y0, params, h5_filename=None,
     return np.array(solutions), np.array(times)
         
 
-do_simulation = True
-restart = False
-
-if not restart and do_simulation: 
-	create_attrib_h5file(h5_filename)
-
-	# N_t = 100 *params.t_0
-	N_t = int(2000000 *params.t_0)
-	T = int(200000 *params.t_0)
-	t_0 = params.t_ini
-
-	solution, t_sol = rk4(t_0, initial_state, params, h5_filename,  \
-						   max_iterations=N_t, max_t=T, iter_output=iter_output)
-elif do_simulation:
-	N_t = 100
-	N_t = 50000
-	T = 15000	
-	
-	restart_from_h5file(h5_filename, params, idata_params, start_from = False,\
-                        max_iterations=N_t, max_t=T, iter_output=N_t//20)
-	
-
-end = time.time() 
-if do_simulation: print(f"Time needed for evolution {end-start} seconds.") 
 
 
-t_sol, solution = load_simdata(h5_filename, params, idata_params)
 
-rm = get_rm(params, idata_params, print_out=1)
-
-
-print("times, ", t_sol)
-
-############################################################
-
-
-# Plot history evolution (results)
-if True:
-
-    omega = get_omega()   
-    R_max = params.r_max
-    rho_bkg_ini = params.rho_bkg_ini
-    dx = R_max/N_r
-    oneoverdx  = 1.0 / dx
-    oneoverdxsquared = oneoverdx * oneoverdx
+if __name__ == "__main__":
     
-    t = t_sol
-    Cmax = 0 
-    
-    t = t[t<tmax]
-    
-    fig, axs = plt.subplots(2,4, figsize=(17,8))
-    ln = len(t)//10
-    print(ln)
-    for i, t_i in enumerate(t) :
-        ln = len(t)//num_points
-        if  (i%ln !=0) :      continue
-        print(ln, i)
-        # if t_i < ln/2 : continue
-        labelt = "t="+str(round(t_i,2))
-           
-        vars_vec = solution[i,:]
-        chi, a, b, K, Aa, AX, X, Lambda, lapse, beta, br, D, E, S = unpack_state(vars_vec, N_r) 
+
+    # Plot initial data
+    if True:
+        
+        fig, axs = plt.subplots(2,4, figsize=(17,8))
+
+        current_state = initial_state
+        chi, a, b, K, Aa, AX, X, Lambda, lapse, beta, br, D, E, S = unpack_state(current_state, N_r) 
+        
+        t_here = params.t_ini 
+        rho_bkg = get_rho_bkg(t_here, params.rho_bkg_ini) 
+        scalefactor = get_scalefactor(t_here, params.omega,params.a_ini, params.t_ini)
+
+        print("scale factor: ", scalefactor, params.a_ini)
 
         rho = get_rho(D, E) 
-        scalefactor = get_scalefactor(t_i, params.omega,params.a_ini, params.t_ini)
-        R = get_R(r, scalefactor, chi, b)
+        
+        R = get_R(r, scalefactor, chi,b)
         dRdr = get_dfdx(R, oneoverdx)
         M = get_M(r, rho, R, dRdr)
         dMdr = get_dfdx(M, oneoverdx)
 
-
-        rho_bkg = get_rho_bkg(t_i, params.rho_bkg_ini)
-        C = compact_function(M, R, rho_bkg)
-        
-        dMdr = get_dfdx(M, oneoverdx)
-        dRdr = get_dfdx(R, oneoverdx)
+        C = compact_function(r, M, R, dRdr, rho_bkg)
+        CSS = get_CompactionSS(chi, dRdr)
                 
-        HamAbs = ((dMdr)**2 +  (4*np.pi*rho*R**2 * dRdr)**2)**0.5        
-        Ham = np.abs((dMdr - 4*np.pi*rho*R**2 * dRdr) / HamAbs)
+        # HamAbs = ((dMdr)**2 +  (4*np.pi*rho*R**2 * dRdr)**2)**0.5        
+        # Ham = np.abs((dMdr - 4*np.pi*rho*R**2 * dRdr))
+        # Ham = np.abs((dMdr - 4*np.pi*rho*R**2 * dRdr) / HamAbs)
+        
+        
+        rho_ADM = rho
+        Ab = -0.5*Aa
+        dadr = get_dfdx(a, oneoverdx)
+        dbdr = get_dfdx(b, oneoverdx)
+        dchidr = get_dfdx(chi, oneoverdx)
+        dLambdadr = get_dfdx(Lambda, oneoverdx)
+        d2chidr2    = get_d2fdx2(chi, oneoverdxsquared)
+        d2adr2      = get_d2fdx2(a, oneoverdxsquared)
+        d2bdr2      = get_d2fdx2(b, oneoverdxsquared)
+        em4chi = np.exp(-4*chi)
+        
+        ricci_scalar = get_ricci_scalar(r, a, b, dadr, dbdr, d2adr2, d2bdr2, em4chi, dchidr, d2chidr2, 
+                     dLambdadr)
+        Ham = get_constraint_HamRel(ricci_scalar, Aa, Ab, K, rho_ADM)
+        
+        omega = get_omega()
+        t_ini = params.t_ini
+        a_ini = params.a_ini
         
         # f_t = 2*M/R
         f_t = C
         
-        Cmax = np.nanmax([Cmax, np.nanmax(C)  ])
-
-        r_over_rm = r/rm
-        xmin, xmax = [r_over_rm[3]  ,r_over_rm[-4]]
-        mask = (r_over_rm)<8
-                
+        r_over_rm = r /rm
+        
         ln = len(r)
         ax = axs[0,0]
-        ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
-        ax.set_ylim(-2,3)
+        ax.plot(r_over_rm[:], f_t[:],'k')
+        #
+        ax.plot(r_over_rm[:], CSS, 'g--')
+        #
+        kstar = get_kstar(params, idata_params)
+        Rprime_over_a_ezeta = ( 1 + r * get_dzetadr(r, kstar) ) 
+        C_v2 = 3*(1+omega)/(5+3*omega) *( 1 - Rprime_over_a_ezeta**2)
+        ax.plot(r_over_rm[:], C_v2, 'r--')
+        #
+        ax.set_ylim(-2,1.5)
         ax.set_ylabel('C')
-        ax.set_xlim(xmin,4)
+        ax.set_xlim(0,3)
         
         ax = axs[0,1]
         f_t = 2*M/R
-        ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
+        ax.plot(r_over_rm[:], f_t[:])
         ax.set_ylim(0,1.5)
         ax.set_xlim(0,1.5)
         ax.legend()
-        ax.set_ylabel('M/R')
-        ax.set_xlim(xmin,4)
+        ax.set_ylabel('2*M/R')
+        ax.set_xlim(0,3)
         
         ax = axs[1,0]
         f_t = R
-        ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
-        ax.set_ylim(0.1,1e6)
+        ax.plot(r_over_rm[:], f_t[:])
+        #
+        k_star = get_kstar(params, idata_params)
+        R_v2 = get_expansion_R(t_ini, r, rm, omega, 0, params)
+        zeta = get_zeta(r, kstar)
+        R_v2 = a_ini * np.exp(zeta) *r
+        ax.plot(r_over_rm[:], R_v2, 'r--')
+        #
+        ax.set_ylim(0.1,1e4)
         # ax.set_xscale('log')
         ax.set_yscale('log')
         ax.set_ylabel('R')
-        ax.set_xlim(xmin,xmax)
+        ax.set_xlim(0,8)
         
+        U = np.zeros_like(rho)
         
         ax = axs[1,1]
         f_t = U
-        ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
+        ax.plot(r_over_rm[:], f_t[:])
         # ax.set_ylim(0.1,1e4)
         # ax.set_yscale('log')
         ax.set_ylabel('U')
-        ax.set_xlim(xmin,xmax)
         
         ax = axs[0,2]
-        f_t = np.abs(M)
-        ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
+        f_t = M
+        ax.plot(r_over_rm[:], f_t[:])
         # ax.set_ylim(0.1,1e4)
         # ax.set_xscale('log')
         ax.set_yscale('log')
@@ -488,60 +341,243 @@ if True:
         
         ax = axs[1,2]
         f_t = rho
-        # rho_check = dMdr/dRdr / (4*np.pi*R**2)
-        
-        ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
-        # ax.plot(r_over_rm, rho_check, label=labelt)
+        ax.plot(r_over_rm[:], f_t[:])
+        # rho_check = dMdr/(dRdr* 4*np.pi*R**2 +1e-5)
+        # ax.plot(r_over_rm, rho_check)
         # ax.set_ylim(0.1,1e4)
         ax.set_ylabel('rho')
         # ax.set_xscale('log')
         ax.set_yscale('log')
-        ax.set_xlim(xmin,xmax)
         
         
         ax = axs[0,3]
-        f_t = (rho - rho_bkg)/rho_bkg
-        # rho_check = dMdr/dRdr / (4*np.pi*R**2)
-        
-        ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
-        # ax.plot(r_over_rm, rho_check, label=labelt)
+        f_t = dRdr
+        ax.plot(r_over_rm[:], f_t[:])
+        #
+        k_star = get_kstar(params, idata_params)
+        Rprime = ( 1 + r * get_dzetadr(r, kstar) ) * a_ini * np.exp(get_zeta(r, kstar))      # R = a ezeta(r) * r ,   Rprime =  a ezeta r zetaprime + a ezeta = (1 + r zetaprime) * a ezeta
+        ax.plot(r_over_rm[:], Rprime, 'r--')
+        #
         # ax.set_ylim(0.1,1e4)
-        ax.set_ylabel('rho')
-        # ax.set_xscale('log')
-        # ax.set_yscale('log')
-        ax.set_xlim(xmin,xmax)
-        
-        
-        ax = axs[1,3]
-        f_t = Ham
-        ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
-        # ax.set_ylim(0.1,1e4)
-        ax.set_ylabel('Ham')
+        ax.set_ylabel('dRdr')
+        ax.set_xlabel('r')
         # ax.set_xscale('log')
         ax.set_yscale('log')
-        ax.set_xlim(xmin,xmax)
+        ax.set_xlim(0,3)
             
-    # mlabel = "2M/R"
-    mlabel = "C"
-
-    # plt.yscale('log')
-    # plt.ylim(-2, 1.5)
-    # plt.xlim(0, 3)
-    # plt.legend(loc=4)
-    # plt.xlabel('r')
-    # plt.ylabel('value over time of ' + mlabel)
-    # plt.grid()
-    plt.tight_layout()
-    plt.savefig(plotdir + 'evol_data_example.png', dpi=100)
-    # plt.show()    
-    
-    print('For nu = ', idata_params.nu,  ' the max value of C at end: ', Cmax)
-    
+        ax = axs[1,3]
+        f_t = Ham
+        ax.plot(r_over_rm[:], f_t[:])
+        ax.set_ylabel('Ham')
+        ax.set_yscale('log')
+            
+        plt.tight_layout()
+        plt.savefig(plotdir + 'initial_data_example.png', dpi=100)
+        plt.clf()
+        plt.close()
 
 
-# # 
-# # End of file 
-# ###################################
+
+    # Start evolution part 
+    import time
+
+    start = time.time()
+
+
+    for key in params.keys():
+        print(f" {key} : {params[key]}") 
+    for key in idata_params.keys():
+        print(f" {key} : {idata_params[key]}") 
+
+
+    do_simulation = True
+    restart = False
+
+    if not restart and do_simulation: 
+        create_attrib_h5file(h5_filename)
+
+        # N_t = 100 *params.t_0
+        N_t = int(2000000 *params.t_0)
+        T = TMAX
+        t_0 = params.t_ini
+
+        solution, t_sol = rk4(t_0, initial_state, params, h5_filename,  \
+                            max_iterations=N_t, max_t=T, iter_output=iter_output)
+    elif do_simulation:
+        N_t = 100
+        N_t = 50000
+        T = 15000	
+        
+        restart_from_h5file(h5_filename, params, idata_params, start_from = False,\
+                            max_iterations=N_t, max_t=T, iter_output=N_t//20)
+        
+
+    end = time.time() 
+    if do_simulation: print(f"Time needed for evolution {end-start} seconds.") 
+
+
+    t_sol, solution = load_simdata(h5_filename, params, idata_params)
+
+    rm = get_rm(params, idata_params, print_out=1)
+
+
+    print("times, ", t_sol)
+
+    ############################################################
+
+
+    # Plot history evolution (results)
+    if True:
+
+        omega = get_omega()   
+        R_max = params.r_max
+        rho_bkg_ini = params.rho_bkg_ini
+        dx = R_max/N_r
+        oneoverdx  = 1.0 / dx
+        oneoverdxsquared = oneoverdx * oneoverdx
+        
+        t = t_sol
+        Cmax = 0 
+        
+        t = t[t<tmax]
+        
+        fig, axs = plt.subplots(2,4, figsize=(17,8))
+        ln = len(t)//10
+        print(ln)
+        for i, t_i in enumerate(t) :
+            ln = len(t)//num_points
+            if  (i%ln !=0) :      continue
+            print(ln, i)
+            # if t_i < ln/2 : continue
+            labelt = "t="+str(round(t_i,2))
+            
+            vars_vec = solution[i,:]
+            chi, a, b, K, Aa, AX, X, Lambda, lapse, beta, br, D, E, S = unpack_state(vars_vec, N_r) 
+
+            rho = get_rho(D, E) 
+            scalefactor = get_scalefactor(t_i, params.omega,params.a_ini, params.t_ini)
+            R = get_R(r, scalefactor, chi, b)
+            dRdr = get_dfdx(R, oneoverdx)
+            M = get_M(r, rho, R, dRdr)
+            dMdr = get_dfdx(M, oneoverdx)
+
+
+            rho_bkg = get_rho_bkg(t_i, params.rho_bkg_ini)
+            C = compact_function(r, M, R, dRdr, rho_bkg)
+            
+            dMdr = get_dfdx(M, oneoverdx)
+            dRdr = get_dfdx(R, oneoverdx)
+                    
+            HamAbs = ((dMdr)**2 +  (4*np.pi*rho*R**2 * dRdr)**2)**0.5        
+            Ham = np.abs((dMdr - 4*np.pi*rho*R**2 * dRdr) / HamAbs)
+            
+            # f_t = 2*M/R
+            f_t = C
+            
+            Cmax = np.nanmax([Cmax, np.nanmax(C)  ])
+
+            r_over_rm = r/rm
+            xmin, xmax = [r_over_rm[3]  ,r_over_rm[-4]]
+            mask = (r_over_rm)<8
+                    
+            ln = len(r)
+            ax = axs[0,0]
+            ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
+            ax.set_ylim(-2,3)
+            ax.set_ylabel('C')
+            ax.set_xlim(xmin,4)
+            
+            ax = axs[0,1]
+            f_t = 2*M/R
+            ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
+            ax.set_ylim(0,1.5)
+            ax.set_xlim(0,1.5)
+            ax.legend()
+            ax.set_ylabel('M/R')
+            ax.set_xlim(xmin,4)
+            
+            ax = axs[1,0]
+            f_t = R
+            ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
+            ax.set_ylim(0.1,1e6)
+            # ax.set_xscale('log')
+            ax.set_yscale('log')
+            ax.set_ylabel('R')
+            ax.set_xlim(xmin,xmax)
+            
+            
+            ax = axs[1,1]
+            f_t = U
+            ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
+            # ax.set_ylim(0.1,1e4)
+            # ax.set_yscale('log')
+            ax.set_ylabel('U')
+            ax.set_xlim(xmin,xmax)
+            
+            ax = axs[0,2]
+            f_t = np.abs(M)
+            ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
+            # ax.set_ylim(0.1,1e4)
+            # ax.set_xscale('log')
+            ax.set_yscale('log')
+            ax.set_ylabel('M')
+            
+            ax = axs[1,2]
+            f_t = rho
+            # rho_check = dMdr/dRdr / (4*np.pi*R**2)
+            
+            ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
+            # ax.plot(r_over_rm, rho_check, label=labelt)
+            # ax.set_ylim(0.1,1e4)
+            ax.set_ylabel('rho')
+            # ax.set_xscale('log')
+            ax.set_yscale('log')
+            ax.set_xlim(xmin,xmax)
+            
+            
+            ax = axs[0,3]
+            f_t = (rho - rho_bkg)/rho_bkg
+            # rho_check = dMdr/dRdr / (4*np.pi*R**2)
+            
+            ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
+            # ax.plot(r_over_rm, rho_check, label=labelt)
+            # ax.set_ylim(0.1,1e4)
+            ax.set_ylabel('rho')
+            # ax.set_xscale('log')
+            # ax.set_yscale('log')
+            ax.set_xlim(xmin,xmax)
+            
+            
+            ax = axs[1,3]
+            f_t = Ham
+            ax.plot(r_over_rm[mask], f_t[mask], label=labelt)
+            # ax.set_ylim(0.1,1e4)
+            ax.set_ylabel('Ham')
+            # ax.set_xscale('log')
+            ax.set_yscale('log')
+            ax.set_xlim(xmin,xmax)
+                
+        # mlabel = "2M/R"
+        mlabel = "C"
+
+        # plt.yscale('log')
+        # plt.ylim(-2, 1.5)
+        # plt.xlim(0, 3)
+        # plt.legend(loc=4)
+        # plt.xlabel('r')
+        # plt.ylabel('value over time of ' + mlabel)
+        # plt.grid()
+        plt.tight_layout()
+        plt.savefig(plotdir + 'evol_data_example.png', dpi=100)
+        # plt.show()    
+        
+        print('For nu = ', idata_params.nu,  ' the max value of C at end: ', Cmax)
+        
+
+
+    # # 
+    # # End of file 
+    # ###################################
 
 
 

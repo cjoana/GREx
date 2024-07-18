@@ -117,22 +117,22 @@ def fill_inner_boundary_ivar(state, dx, N, r_is_logarithmic, ivar) :
     return 0 
 
 # fills the outer boundary ghosts at large r
-def fill_reflective_outer_boundary(state, dx, N, r_is_logarithmic) :
+def fill_reflective_outer_boundary(state, dx, N, r_is_logarithmic, nghosts=False) :
 
     for ivar in range(0, NUM_VARS) :
-        fill_reflective_outer_boundary_ivar(state, dx, N, r_is_logarithmic, ivar)
+        fill_reflective_outer_boundary_ivar(state, dx, N, r_is_logarithmic, ivar, nghosts)
 
     return 0 
     
-def fill_reflective_outer_boundary_ivar(state, dx, N, r_is_logarithmic, ivar) :
+def fill_reflective_outer_boundary_ivar(state, dx, N, r_is_logarithmic, ivar, nghosts) :
 
-    var_parity = parity[ivar]
     # Apply a simple reflection of the values
     # boundary_cells = np.array([(ivar)*N + ig  for ig in range(num_ghosts)])
-    boundary_cells = np.array([(ivar + 1)*N-ig-1 for ig in range(num_ghosts)[::-1] ])
+    nghosts = nghosts if nghosts else num_ghosts
+    boundary_cells = np.array([(ivar + 1)*N-ig-1 for ig in range(nghosts)[::-1] ])
     for count, ix in enumerate(boundary_cells) :
         offset = 2*num_ghosts -1 - 2*count
-        state[ix] = state[ix - offset] #* var_parity
+        state[ix] = state[ix - offset] 
         # print(f' {ix} gets value from {ix-offset}')
     return 0
 

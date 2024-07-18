@@ -15,7 +15,7 @@ def get_rhs_chi(lapse, K, cov_beta, sigma_frame) :
 
     # Calculate rhs
     dchidt = (- one_sixth * lapse * K 
-              + sigma_frame * one_sixth * cov_beta)
+              + sigma_frame * one_sixth * cov_beta)    
     
     return dchidt
 
@@ -47,6 +47,17 @@ def get_rhs_K(r, a, b, dadr, dbdr, em4chi, dchidr, K, dKdr,
     dKdt = - D2_lapse \
             + lapse * one_third * K * K  +  lapse*(Aa*Aa + 2*Ab*Ab)  \
             + 0.5 * eight_pi_G * lapse * (rho + Sa + 2*Sb)
+
+
+
+    # DEBUG CJ TODO
+    # print("D2_lapse:",  - D2_lapse[1], "  at r", r[1])
+    # geo = lapse * one_third * K * K  +  lapse*(Aa*Aa + 2*Ab*Ab) 
+    # print('  geo',  geo[1])
+    # mat =  + 0.5 * eight_pi_G * lapse * (rho + Sa + 2*Sb)
+    # print('  mat', mat[1])
+    # print("")
+
 
     return dKdt
 
@@ -84,17 +95,6 @@ def get_rhs_AX(r, a, b, dadr, dbdr, X, dXdr, d2Xdr2, em4chi, dchidr,
     
     one_over_rae4chi = em4chi/(r*a)
      
-    # dAXdt = 2*AX*beta/r    
-    # dAXdt += - one_over_rae4chi * \
-    #   (dr_dlapsedr_over_r - dlapsedr/(2*r) * (dadr/a * dbdr/b + 8*dchidr))
-    # dAXdt += - lapse * one_over_rae4chi * \
-    #   (2*dr_dchidr_over_r - dchidr/r * (dadr/a * dbdr/b + 4*dchidr))
-    # dAXdt += + lapse *  em4chi/a * ( 0.5*b/a*d2Xdr2 \
-    #            + a/r*dr_Lambda_over_r + dXdr/r*(1+2*b/a-0.5*r*b*Lambda) \
-    #            + dadr/(a*r*r)*(3*0.25*dadr/a - dbdr/b) \
-    #            - X/r*(b*Lambda + 2*dbdr/b) + b/a*X*X) \
-    #            + lapse*K*AX + lapse*eight_pi_G*(Sa - Sb)/r/r    
-
     dAXdt = 2*AX*beta/r    
 
     dAXdt += - one_over_rae4chi * \
@@ -112,15 +112,14 @@ def get_rhs_AX(r, a, b, dadr, dbdr, X, dXdr, d2Xdr2, em4chi, dchidr,
                         + b/a*X*X  \
                         )    
 
-    dAXdt += + lapse*K*AX - lapse*eight_pi_G*(Sa - Sb)/r/r   
+    dAXdt += + lapse*K*AX - lapse*eight_pi_G*(Sa - Sb)/r/r    
     
             
-    return dAXdt
+    return dAXdt 
 
 # X is the lambda function in Alcubierre's paper
 def get_rhs_X(r, a, b, AX, lapse, X, beta, dr_beta_over_r) :
     
-    # dXdt = 0.5/r *(beta*X - a/b * dr_beta_over_r) + 2*lapse*a/b*AX
     dXdt = 2.0/r *(beta*X - a/b * dr_beta_over_r) + 2*lapse*a/b*AX
     
     return dXdt
@@ -217,7 +216,7 @@ def get_lapse(rho, rho_bkg, omega):
     A = (rho_bkg/rho)**(omega/(omega+1))
 
     if np.sum(A!=A)>0:
-        if print_A_set_one: print("A imposed 1!! with", rho_bkg, rho, omega  )
+        if print_A_set_one: print("In get_lapse()  --> A imposed 1!! with", rho_bkg, rho, omega  )
         A[A!=A]=1
 
     return A
@@ -244,14 +243,6 @@ def get_rho_bkg(t_over_t_ini, rho_bkg_ini):
 	# Assumes FLRW evolution
 	rho_bkg = rho_bkg_ini * t_over_t_ini**(-2)
 	return rho_bkg
-
-# def get_zeta_from_chi(chi, scalefactor):
-#     zeta = 2*chi
-#     return zeta
-
-
-
-	
 
 
 

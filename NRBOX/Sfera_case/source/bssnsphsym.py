@@ -13,7 +13,6 @@ print_A_set_one = False
 # chi is the (exponential) conformal factor, that is \gamma_ij = e^{4\chi) \bar gamma_ij
 def get_rhs_chi(lapse, K, cov_beta, sigma_frame) :
 
-
     # Calculate rhs
     dchidt = (- one_sixth * lapse * K 
               + sigma_frame * one_sixth * cov_beta)    
@@ -221,15 +220,15 @@ def get_lapse(rho, rho_bkg, omega):
     A = (rho_bkg/rho)**(omega/(omega+1))
 
     if np.sum(A!=A)>0:
-        if print_A_set_one: print("A imposed 1!! with", rho_bkg, rho, omega  )
+        if print_A_set_one: print("In get_lapse()  --> A imposed 1!! with", rho_bkg, rho, omega  )
         A[A!=A]=1
 
     return A
 
 
 ##########################################################################
-### FLRW and other quantities
-############################################
+###    FLRW and other quantities
+##########################################################################
 
 
 def get_scalefactor(t, omega, a_ini, t_ini):
